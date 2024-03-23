@@ -4,6 +4,7 @@
 | ------------------------------------------------------------- | -------------- | --------------------- |
 | Optimal Blackjack                                             | February 2024  | (Expected April 2024) |
 | Evaluating Reinforcement Learning Agents with NeroNav Toolkit | September 2023 | (May 2024)            |
+| MultiClass Obesity Prediction                                 | February 2023  | Feburary 2023         |
 | MedleyVox Singer Recognition                                  | November 2023  | December 2023         |
 
 ## Optimal Blackjack
@@ -15,6 +16,5 @@ Seasoned players claim to have developed a strong strategy for this game based o
 My final goal for this project is to leverage my understanding of reinforcement learning to develop a Q-learning agent to empirically model the success rate of any particular action given a particular game state.
 
 ## Reinforcement Learning with NeuroNav Toolkit
-
 
 ## MedleyVox Signer Recognition
