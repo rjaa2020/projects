@@ -47,6 +47,8 @@ for index, model in car_models.iterrows():
 	source = driver.page_source
 	soup = BeautifulSoup(source)
 
+	cash_price = soup.find('p', class_="pricing-value heading-2 mb-0").text
+
 	costs_table = soup.find("table", {'class': "costs-table"})
 	table = pd.read_html(str(costs_table), header=0)[0]
 	totals = pd.concat([table.iloc[:, 0], table.iloc[:, 6]], axis=1)
@@ -56,3 +58,8 @@ for index, model in car_models.iterrows():
 
 # time.sleep(3)
 # driver.quit()
+
+#%%
+
+data.query(f"Make == '{model.Make}' & Year == {model.Year} & Model == '{model.Model}' & Style == "
+           f"'{model.Style}'")
