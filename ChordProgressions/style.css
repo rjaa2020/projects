@@ -1,0 +1,69 @@
+/* Reset some basic styles */
+body {
+    font-family: Arial, sans-serif;
+    /* Set a modern font for better readability */
+    background-color: #f4f4f4;
+    /* Light gray background for contrast */
+    margin: 0;
+    /* Remove default margin */
+    padding: 20px;
+    /* Add some padding around the content */
+}
+
+/* Style for the heading */
+h1 {
+    color: #333;
+    /* Dark gray color for the heading */
+    text-align: center;
+    /* Center the heading */
+}
+
+/* Style for the note info paragraphs */
+.note-info {
+    font-size: 1.2em;
+    /* Increase the font size for better visibility */
+    color: #555;
+    /* Slightly lighter gray for the text */
+    margin: 10px 0;
+    /* Add some margin above and below each note info */
+    padding: 10px;
+    /* Add some padding around the text */
+    border: 1px solid #ddd;
+    /* Light border for distinction */
+    border-radius: 5px;
+    /* Slightly rounded corners */
+    background-color: #fff;
+    /* White background for the note info */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    /* Add subtle shadow for depth */
+}
+
+/* Style for the play button */
+#play-note-btn {
+    display: block;
+    /* Make the button block-level for easier alignment */
+    margin: 20px auto;
+    /* Center the button horizontally */
+    padding: 10px 20px;
+    /* Add padding for better touch target */
+    font-size: 1.1em;
+    /* Increase the font size for the button */
+    color: white;
+    /* White text color */
+    background-color: #007bff;
+    /* Bootstrap primary color */
+    border: none;
+    /* Remove default border */
+    border-radius: 5px;
+    /* Slightly rounded corners */
+    cursor: pointer;
+    /* Change cursor to pointer on hover */
+    transition: background-color 0.3s;
+    /* Smooth transition for background color */
+}
+
+/* Button hover effect */
+#play-note-btn:hover {
+    background-color: #0056b3;
+    /* Darker blue on hover */
+}
