@@ -92,4 +92,4 @@ def build_seventh_chord(root: str, quality: str) -> ChordPrompt:
     semitone_offsets = CHORD_FORMULAS[quality]
     notes = tuple(scale[(root_idx + offset) % 12] for offset in semitone_offsets)
     symbol = f"{normalized_root}{quality}"
-    return ChordPrompt(symbol=symbol, notes=notes)
+    return ChordPrompt(symbol=symbol, notes=tuple(notes))  # type: ignore

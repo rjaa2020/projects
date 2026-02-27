@@ -12,6 +12,8 @@ set PYTHON_EXE=%ROOT_DIR%.venv\Scripts\python.exe
 if not exist "%PYTHON_EXE%" set PYTHON_EXE=%ROOT_DIR%..\.venv\Scripts\python.exe
 if not exist "%PYTHON_EXE%" set PYTHON_EXE=python
 
+powershell -ExecutionPolicy Bypass -File "%ROOT_DIR%scripts\restart-woodshed.ps1" -ApiPort %API_PORT% -WebPort %WEB_PORT%
+
 call npm run web:install
 if errorlevel 1 (
   echo Failed to install web dependencies.

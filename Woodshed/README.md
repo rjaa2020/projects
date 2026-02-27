@@ -88,3 +88,5 @@ Double-click [Launch-Woodshed-Web.bat](Launch-Woodshed-Web.bat) from the Woodshe
 It starts:
 - Python API on `http://127.0.0.1:8010`
 - Web GUI on `http://127.0.0.1:3010`
+
+Before launching, it automatically stops existing Woodshed API/web processes and clears conflicts on these ports.

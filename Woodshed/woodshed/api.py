@@ -46,7 +46,7 @@ def generate_prompt(request: PromptRequest) -> PromptResponse:
 @app.post("/check", response_model=CheckResponse)
 def check_answer(request: CheckRequest) -> CheckResponse:
     session = QuizSession(QuizSettings(rounds=1))
-    prompt = ChordPrompt(symbol=request.symbol, notes=tuple(request.notes))
+    prompt = ChordPrompt(symbol=request.symbol, notes=tuple(request.notes))  # type: ignore
     result = session.check_answer(prompt, request.answer)
 
     return CheckResponse(
