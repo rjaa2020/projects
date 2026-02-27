@@ -52,6 +52,16 @@ This creates distributable files in `dist/`.
 
 The Node.js web server only renders UI and calls the Python API.
 
+In the GUI, use checkboxes to include keys and chord qualities, then click **Save Filters**.
+Filtering logic is enforced by the Python package, not by frontend-only rules.
+
+Use **View Stats** to open a separate table page with key × chord-quality scores:
+- `0` = untested
+- `+1` per correct answer
+- `-1` per incorrect answer
+
+Prompt sampling is adaptive: lower-scored combinations appear more often, and higher-scored combinations appear less often.
+
 ```bash
 cd web
 npm install

@@ -92,4 +92,19 @@ def build_seventh_chord(root: str, quality: str) -> ChordPrompt:
     semitone_offsets = CHORD_FORMULAS[quality]
     notes = tuple(scale[(root_idx + offset) % 12] for offset in semitone_offsets)
     symbol = f"{normalized_root}{quality}"
-    return ChordPrompt(symbol=symbol, notes=tuple(notes))  # type: ignore
+    return ChordPrompt(symbol=symbol, notes=notes) # type: ignore
+
+
+def split_chord_symbol(symbol: str) -> tuple[str, str]:
+    clean_symbol = symbol.strip()
+    if not clean_symbol:
+        raise ValueError("Chord symbol cannot be empty")
+
+    for root in sorted(PRACTICE_ROOTS, key=len, reverse=True):
+        if clean_symbol.startswith(root):
+            quality = clean_symbol[len(root):]
+            if quality in CHORD_FORMULAS:
+                return root, quality
+
+    allowed = ", ".join(f"{root}{quality}" for root in PRACTICE_ROOTS[:3] for quality in DEFAULT_CHORD_TYPES[:2])
+    raise ValueError(f"Unsupported chord symbol '{symbol}'. Example symbols: {allowed}")
