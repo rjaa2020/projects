@@ -1,0 +1,9 @@
+{
+  "name": "woodshed-tools",
+  "private": true,
+  "scripts": {
+    "api": "python -m woodshed.api",
+    "web:install": "npm --prefix web install",
+    "web": "npm --prefix web start"
+  }
+}
