@@ -122,10 +122,22 @@ function noteOrderRank(note) {
   return Number.MAX_SAFE_INTEGER;
 }
 
-function sortNotesWithClasses(notes, classes) {
+function sortNotesWithClasses(notes, classes, rootPitch = null) {
+  const hasRootPitch = Number.isFinite(rootPitch) && rootPitch >= 0 && rootPitch <= 11;
+  const relativeRank = (note) => {
+    const absoluteRank = noteOrderRank(note);
+    if (absoluteRank === Number.MAX_SAFE_INTEGER) {
+      return absoluteRank;
+    }
+    if (!hasRootPitch) {
+      return absoluteRank;
+    }
+    return (absoluteRank - rootPitch + 12) % 12;
+  };
+
   const paired = notes.map((note, index) => ({ note, className: classes[index], index }));
   paired.sort((a, b) => {
-    const rankDiff = noteOrderRank(a.note) - noteOrderRank(b.note);
+    const rankDiff = relativeRank(a.note) - relativeRank(b.note);
     if (rankDiff !== 0) {
       return rankDiff;
     }
@@ -190,6 +202,7 @@ function renderNoteChips(notes, classes) {
 
 function renderIncorrectAnswerMessage(promptSymbol, userAnswer, correctNotes) {
   const userNotes = tokenizeNotes(userAnswer);
+  const promptRootPitch = rootPitchClass({ symbol: promptSymbol, notes: correctNotes });
   const normalizedCorrectCounts = noteCountMap(correctNotes);
   const matchedCounts = new Map();
 
@@ -214,8 +227,8 @@ function renderIncorrectAnswerMessage(promptSymbol, userAnswer, correctNotes) {
     return 'note-missing';
   });
 
-  const sortedUser = sortNotesWithClasses(userNotes, userClasses);
-  const sortedCorrect = sortNotesWithClasses(correctNotes, correctClasses);
+  const sortedUser = sortNotesWithClasses(userNotes, userClasses, promptRootPitch);
+  const sortedCorrect = sortNotesWithClasses(correctNotes, correctClasses, promptRootPitch);
   const userChips = renderNoteChips(sortedUser.notes, sortedUser.classes);
   const correctChips = renderNoteChips(sortedCorrect.notes, sortedCorrect.classes);
 
@@ -474,10 +487,99 @@ function renderStatsPanel({ options, preferences, selectedStat }) {
       </aside>`;
 }
 
-function renderMainPage({ prompt, score, round, resultMessage, resultClass, options, preferences, selectedStat }) {
+function rootPitchClass(prompt) {
+  if (prompt && Array.isArray(prompt.notes) && prompt.notes.length > 0) {
+    const rank = noteOrderRank(prompt.notes[0]);
+    if (Number.isFinite(rank) && rank !== Number.MAX_SAFE_INTEGER) {
+      return rank;
+    }
+  }
+
+  const symbol = String(prompt && prompt.symbol ? prompt.symbol : '').trim();
+  const match = symbol.match(/^([A-Ga-g])([#b]?)/);
+  if (!match) {
+    return null;
+  }
+
+  const tonic = match[1].toUpperCase();
+  const accidental = match[2] === 'b' ? 'B' : match[2];
+  const rank = noteOrderRank(`${tonic}${accidental}`);
+  if (Number.isFinite(rank) && rank !== Number.MAX_SAFE_INTEGER) {
+    return rank;
+  }
+
+  return null;
+}
+
+function renderKeyboardInput(rootPitch, highlightedNotes = []) {
+  const octaveCount = 2;
+  const highlightedPitches = new Set(
+    (Array.isArray(highlightedNotes) ? highlightedNotes : [])
+      .map((note) => noteOrderRank(note))
+      .filter((rank) => Number.isFinite(rank) && rank !== Number.MAX_SAFE_INTEGER)
+  );
+  const whiteKeys = [
+    { note: 'C', pitch: 0 },
+    { note: 'D', pitch: 2 },
+    { note: 'E', pitch: 4 },
+    { note: 'F', pitch: 5 },
+    { note: 'G', pitch: 7 },
+    { note: 'A', pitch: 9 },
+    { note: 'B', pitch: 11 }
+  ];
+  const blackKeys = [
+    { note: 'C#', pitch: 1, leftPercent: 10.5 },
+    { note: 'D#', pitch: 3, leftPercent: 24.5 },
+    { note: 'F#', pitch: 6, leftPercent: 53.5 },
+    { note: 'G#', pitch: 8, leftPercent: 67.5 },
+    { note: 'A#', pitch: 10, leftPercent: 81.5 }
+  ];
+
+  const octaves = Array.from({ length: octaveCount }, (_, octave) => {
+    const whiteMarkup = whiteKeys
+      .map((key) => {
+        const showRootDot = octave === 0 && Number.isFinite(rootPitch) && key.pitch === rootPitch;
+        const keyClass = highlightedPitches.has(key.pitch) ? 'piano-key white correct-note' : 'piano-key white';
+        return `<button type="button" class="${keyClass}" data-note="${key.note}" data-pitch="${key.pitch}" aria-label="${key.note}">
+            ${showRootDot ? '<span class="root-dot" aria-hidden="true"></span>' : ''}
+            <span class="key-label">${key.note}</span>
+          </button>`;
+      })
+      .join('');
+
+    const blackMarkup = blackKeys
+      .map((key) => {
+        const showRootDot = octave === 0 && Number.isFinite(rootPitch) && key.pitch === rootPitch;
+        const keyClass = highlightedPitches.has(key.pitch) ? 'piano-key black correct-note' : 'piano-key black';
+        return `<button type="button" class="${keyClass}" data-note="${key.note}" data-pitch="${key.pitch}" aria-label="${key.note}" style="left:${key.leftPercent}%">
+            ${showRootDot ? '<span class="root-dot" aria-hidden="true"></span>' : ''}
+          </button>`;
+      })
+      .join('');
+
+    return `<div class="keyboard-octave" aria-label="Octave ${octave + 1}">
+        <div class="white-keys">${whiteMarkup}</div>
+        <div class="black-keys">${blackMarkup}</div>
+      </div>`;
+  }).join('');
+
+  return `<section class="input-keyboard-wrap" aria-label="Note keyboard input">
+      <div class="input-keyboard">${octaves}</div>
+      <div class="keyboard-tools" aria-label="Keyboard editing tools">
+        <button type="button" class="key-tool-btn" data-key-tool="backspace">Backspace</button>
+        <button type="button" class="key-tool-btn" data-key-tool="clear">Clear</button>
+      </div>
+    </section>`;
+}
+
+function renderMainPage({ prompt, score, round, resultMessage, resultClass, options, preferences, selectedStat, highlightedNotes = [], overallElapsedSeconds = 0 }) {
   const safePrompt = prompt.symbol;
+  const keyboardMarkup = renderKeyboardInput(rootPitchClass(prompt), highlightedNotes);
+  const safeOverallElapsedSeconds = Number.isFinite(Number(overallElapsedSeconds))
+    ? Math.max(0, Number(overallElapsedSeconds))
+    : 0;
   const resultHtml = resultMessage
-    ? `<div class="result ${resultClass}">${resultMessage}</div>`
+    ? `<div id="quizResult" class="result ${resultClass}">${resultMessage}</div>`
     : '';
   const statsPanel = renderStatsPanel({ options, preferences, selectedStat });
   const inlineGraph = renderInlineSelectedStat({ selectedStat, preferences });
@@ -517,18 +619,35 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
             </div>
           </form>
 
-          <div class="meta">Round: ${round} | Score: ${score}</div>
-          <div class="prompt">${safePrompt}</div>
+          <div class="meta">Round: ${round} | Score: ${score} | Overall: <strong id="overallTimer" data-base-seconds="${safeOverallElapsedSeconds.toFixed(3)}">00:00</strong></div>
+          <div id="quizPrompt" class="prompt">${safePrompt}</div>
 
           <form method="post" action="/check" autocomplete="off">
             <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <input type="password" name="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
-            <label for="answer">Enter 4 notes in any order</label>
-            <input id="answer" name="answer" type="text" placeholder="C E G B or C,E,G,B" autocomplete="off" autofocus required />
+            <input id="pausedSeconds" name="pausedSeconds" type="hidden" value="0" />
+            <input id="overallElapsedSecondsInput" name="overallElapsedSeconds" type="hidden" value="${safeOverallElapsedSeconds.toFixed(3)}" />
 
-            <div class="actions">
-              <button type="submit">Submit</button>
-              <a class="link-btn" href="/">Restart</a>
+            <div class="timer-bar" aria-live="polite">
+              <span class="timer-label">Timer</span>
+              <strong id="answerTimer" class="timer-value">0.0s</strong>
+              <span id="timerState" class="timer-state">Running</span>
+              <button type="button" class="key-tool-btn" id="pauseTimerBtn">Pause</button>
+              <button type="button" class="key-tool-btn" id="resumeTimerBtn" hidden>Resume</button>
+            </div>
+
+            <p id="pausedNotice" class="paused-notice" hidden>Quiz paused. Press Resume to continue.</p>
+
+            <div id="quizPlayArea">
+              <label for="answer">Enter 4 notes in any order</label>
+              <input id="answer" name="answer" type="text" placeholder="C E G B or C,E,G,B" autocomplete="off" autofocus required />
+
+              ${keyboardMarkup}
+
+              <div class="actions">
+                <button type="submit">Submit</button>
+                <a class="link-btn" href="/">Restart</a>
+              </div>
             </div>
           </form>
 
@@ -551,6 +670,177 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
           answerInput.setAttribute('autocorrect', 'off');
           answerInput.setAttribute('autocapitalize', 'off');
           answerInput.setAttribute('spellcheck', 'false');
+
+          const pausedSecondsInput = document.getElementById('pausedSeconds');
+          const overallElapsedSecondsInput = document.getElementById('overallElapsedSecondsInput');
+          const overallTimer = document.getElementById('overallTimer');
+          const timerValue = document.getElementById('answerTimer');
+          const timerState = document.getElementById('timerState');
+          const pauseTimerBtn = document.getElementById('pauseTimerBtn');
+          const resumeTimerBtn = document.getElementById('resumeTimerBtn');
+          const pausedNotice = document.getElementById('pausedNotice');
+          const quizPlayArea = document.getElementById('quizPlayArea');
+          const quizPrompt = document.getElementById('quizPrompt');
+          const quizResult = document.getElementById('quizResult');
+          const quizForm = answerInput.closest('form');
+          const keyButtons = Array.from(document.querySelectorAll('.piano-key'));
+          const keyboardTools = Array.from(document.querySelectorAll('[data-key-tool]'));
+
+          const timerStartedAt = Date.now();
+          const baseOverallSeconds = overallTimer
+            ? Math.max(0, Number(overallTimer.getAttribute('data-base-seconds')) || 0)
+            : 0;
+          let totalPausedMs = 0;
+          let pausedAtMs = null;
+
+          const effectiveElapsedSeconds = (nowMs) => {
+            const activePausedMs = pausedAtMs ? (nowMs - pausedAtMs) : 0;
+            return Math.max(0, ((nowMs - timerStartedAt) - totalPausedMs - activePausedMs) / 1000);
+          };
+
+          const formatMMSS = (totalSeconds) => {
+            const wholeSeconds = Math.max(0, Math.floor(totalSeconds));
+            const hours = Math.floor(wholeSeconds / 3600);
+            const minutes = Math.floor(wholeSeconds / 60);
+            const seconds = wholeSeconds % 60;
+            if (hours > 0) {
+              const remainingMinutes = Math.floor((wholeSeconds % 3600) / 60);
+              return String(hours).padStart(2, '0') + ':' + String(remainingMinutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            }
+            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+          };
+
+          const updateTimerDisplay = () => {
+            const now = Date.now();
+            const activePausedMs = pausedAtMs ? (now - pausedAtMs) : 0;
+            const elapsedSeconds = effectiveElapsedSeconds(now);
+            if (timerValue) {
+              timerValue.textContent = elapsedSeconds.toFixed(1) + 's';
+            }
+            if (pausedSecondsInput) {
+              pausedSecondsInput.value = ((totalPausedMs + activePausedMs) / 1000).toFixed(3);
+            }
+            const overallSeconds = baseOverallSeconds + elapsedSeconds;
+            if (overallTimer) {
+              overallTimer.textContent = formatMMSS(overallSeconds);
+            }
+            if (overallElapsedSecondsInput) {
+              overallElapsedSecondsInput.value = overallSeconds.toFixed(3);
+            }
+          };
+
+          const setPausedState = (isPaused) => {
+            if (timerState) {
+              timerState.textContent = isPaused ? 'Paused' : 'Running';
+            }
+            if (pauseTimerBtn) {
+              pauseTimerBtn.hidden = isPaused;
+            }
+            if (resumeTimerBtn) {
+              resumeTimerBtn.hidden = !isPaused;
+            }
+            if (pausedNotice) {
+              pausedNotice.hidden = !isPaused;
+            }
+            if (quizPlayArea) {
+              quizPlayArea.hidden = isPaused;
+            }
+            if (quizPrompt) {
+              quizPrompt.hidden = isPaused;
+            }
+            if (quizResult) {
+              quizResult.hidden = isPaused;
+            }
+
+            answerInput.disabled = isPaused;
+            keyButtons.forEach((button) => {
+              button.disabled = isPaused;
+            });
+            keyboardTools.forEach((button) => {
+              button.disabled = isPaused;
+            });
+
+            if (isPaused) {
+              answerInput.blur();
+            } else {
+              answerInput.focus();
+            }
+          };
+
+          if (pauseTimerBtn) {
+            pauseTimerBtn.addEventListener('click', () => {
+              if (!pausedAtMs) {
+                pausedAtMs = Date.now();
+                setPausedState(true);
+                updateTimerDisplay();
+              }
+            });
+          }
+
+          if (resumeTimerBtn) {
+            resumeTimerBtn.addEventListener('click', () => {
+              if (pausedAtMs) {
+                totalPausedMs += Date.now() - pausedAtMs;
+                pausedAtMs = null;
+                setPausedState(false);
+                updateTimerDisplay();
+              }
+            });
+          }
+
+          if (quizForm) {
+            quizForm.addEventListener('submit', () => {
+              const now = Date.now();
+              if (pausedAtMs) {
+                totalPausedMs += now - pausedAtMs;
+                pausedAtMs = null;
+              }
+              if (pausedSecondsInput) {
+                pausedSecondsInput.value = (totalPausedMs / 1000).toFixed(3);
+              }
+              if (overallElapsedSecondsInput) {
+                overallElapsedSecondsInput.value = (baseOverallSeconds + effectiveElapsedSeconds(now)).toFixed(3);
+              }
+            });
+          }
+
+          setPausedState(false);
+          updateTimerDisplay();
+          window.setInterval(updateTimerDisplay, 100);
+
+          const splitTokens = (value) => value
+            .split(/[\s,]+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+
+          keyButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+              const note = button.getAttribute('data-note');
+              if (!note) {
+                return;
+              }
+
+              const current = answerInput.value.trim();
+              answerInput.value = current ? (current + ' ' + note) : note;
+              answerInput.focus();
+            });
+          });
+
+          keyboardTools.forEach((button) => {
+            button.addEventListener('click', () => {
+              const action = button.getAttribute('data-key-tool');
+              const tokens = splitTokens(answerInput.value);
+
+              if (action === 'clear') {
+                answerInput.value = '';
+              } else if (action === 'backspace') {
+                tokens.pop();
+                answerInput.value = tokens.join(' ');
+              }
+
+              answerInput.focus();
+            });
+          });
         }
       });
     </script>
@@ -572,6 +862,7 @@ app.get('/', async (req, res) => {
     req.session.score = 0;
     req.session.round = 1;
     req.session.selectedStat = null;
+    req.session.overallElapsedSeconds = 0;
 
     res.send(
       renderMainPage({
@@ -581,6 +872,7 @@ app.get('/', async (req, res) => {
         options,
         preferences,
         selectedStat: null,
+        overallElapsedSeconds: 0,
         resultMessage: '',
         resultClass: ''
       })
@@ -610,6 +902,7 @@ app.post('/preferences', async (req, res) => {
     req.session.score = 0;
     req.session.round = 1;
     req.session.selectedStat = null;
+    req.session.overallElapsedSeconds = 0;
 
     res.send(
       renderMainPage({
@@ -619,6 +912,7 @@ app.post('/preferences', async (req, res) => {
         options,
         preferences,
         selectedStat: null,
+        overallElapsedSeconds: 0,
         resultMessage: 'Filters saved. Score cleared for new filter set.',
         resultClass: 'ok'
       })
@@ -660,6 +954,7 @@ app.get('/select-stat', async (req, res) => {
 
     const score = Number.isInteger(req.session.score) ? req.session.score : 0;
     const round = Number.isInteger(req.session.round) ? req.session.round : 1;
+    const overallElapsedSeconds = Number(req.session.overallElapsedSeconds);
 
     res.send(
       renderMainPage({
@@ -669,6 +964,7 @@ app.get('/select-stat', async (req, res) => {
         options,
         preferences,
         selectedStat,
+        overallElapsedSeconds: Number.isFinite(overallElapsedSeconds) && overallElapsedSeconds >= 0 ? overallElapsedSeconds : 0,
         resultMessage: '',
         resultClass: ''
       })
@@ -742,6 +1038,7 @@ app.post('/clear-scores', async (req, res) => {
     req.session.promptStartedAtMs = Date.now();
     req.session.score = 0;
     req.session.round = 1;
+    req.session.overallElapsedSeconds = 0;
 
     res.send(
       renderMainPage({
@@ -751,6 +1048,7 @@ app.post('/clear-scores', async (req, res) => {
         options,
         preferences,
         selectedStat: null,
+        overallElapsedSeconds: 0,
         resultMessage: 'Score cleared.',
         resultClass: 'ok'
       })
@@ -771,14 +1069,20 @@ app.post('/check', async (req, res) => {
     const answer = String(req.body.answer || '');
     const score = Number.isInteger(req.session.score) ? req.session.score : 0;
     const round = Number.isInteger(req.session.round) ? req.session.round : 1;
+    const submittedOverallElapsed = Number(req.body.overallElapsedSeconds);
+    const overallElapsedSeconds = Number.isFinite(submittedOverallElapsed) && submittedOverallElapsed >= 0
+      ? submittedOverallElapsed
+      : (Number.isFinite(Number(req.session.overallElapsedSeconds)) ? Number(req.session.overallElapsedSeconds) : 0);
     const options = await callApi('/options');
     const preferences = req.session.preferences || defaultPreferences(options);
     preferences.scores = preferences.scores || {};
     preferences.attemptTimes = preferences.attemptTimes || {};
 
     const startedAtMs = Number(req.session.promptStartedAtMs);
+    const pausedSeconds = Number(req.body.pausedSeconds);
+    const pauseOffsetSeconds = Number.isFinite(pausedSeconds) && pausedSeconds >= 0 ? pausedSeconds : 0;
     const answerTimeSeconds = Number.isFinite(startedAtMs) && startedAtMs > 0
-      ? Math.max(0, (Date.now() - startedAtMs) / 1000)
+      ? Math.max(0, ((Date.now() - startedAtMs) / 1000) - pauseOffsetSeconds)
       : null;
 
     const check = await callApi('/check', {
@@ -802,8 +1106,8 @@ app.post('/check', async (req, res) => {
     req.session.score = nextScore;
     req.session.round = nextRound;
     req.session.preferences = preferences;
-    const selectedStat = { root: check.root, quality: check.chord_quality };
-    req.session.selectedStat = selectedStat;
+    req.session.overallElapsedSeconds = overallElapsedSeconds;
+    const selectedStat = req.session.selectedStat || null;
 
     const message = isCorrect
       ? `Correct. ${escapeHtml(currentPrompt.symbol)} = ${escapeHtml(formatDisplayNotesList(currentPrompt.notes))}`
@@ -817,8 +1121,10 @@ app.post('/check', async (req, res) => {
         options,
         preferences,
         selectedStat,
+        overallElapsedSeconds,
         resultMessage: message,
-        resultClass: isCorrect ? 'ok' : 'bad'
+        resultClass: isCorrect ? 'ok' : 'bad',
+        highlightedNotes: isCorrect ? [] : currentPrompt.notes
       })
     );
   } catch (error) {

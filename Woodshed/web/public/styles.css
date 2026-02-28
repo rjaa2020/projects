@@ -109,6 +109,210 @@ input[type="text"] {
   font-size: 1rem;
 }
 
+.timer-bar {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timer-label {
+  font-weight: 700;
+  color: #374151;
+}
+
+.timer-value {
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+}
+
+.timer-state {
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  padding: 2px 8px;
+  color: #374151;
+  background: #f9fafb;
+}
+
+.paused-notice {
+  margin-top: 10px;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+}
+
+.input-keyboard-wrap {
+  margin-top: 12px;
+}
+
+.input-keyboard {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.keyboard-tools {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.key-tool-btn {
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #1f2937;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.key-tool-btn:hover {
+  background: #f3f4f6;
+}
+
+.keyboard-octave {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+  user-select: none;
+}
+
+.white-keys {
+  height: 180px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.black-keys {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 110px;
+  pointer-events: none;
+}
+
+.piano-key {
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 8px 8px;
+  cursor: pointer;
+  position: relative;
+  font: inherit;
+}
+
+.piano-key.white {
+  background: #ffffff;
+  color: #1f2937;
+  padding-bottom: 8px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.piano-key.white:hover {
+  background: #f9fafb;
+}
+
+.piano-key.white.correct-note {
+  background: #dcfce7;
+  border-color: #86efac;
+  animation: correct-note-fade-white 10s ease-out forwards;
+}
+
+.piano-key.white.correct-note:hover {
+  background: #bbf7d0;
+}
+
+.piano-key.black {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  width: 10%;
+  height: 100%;
+  transform: translateX(-50%);
+  background: #111827;
+  border-color: #111827;
+  border-radius: 0 0 6px 6px;
+  z-index: 2;
+}
+
+.piano-key.black:hover {
+  background: #1f2937;
+}
+
+.piano-key.black.correct-note {
+  background: #166534;
+  border-color: #166534;
+  animation: correct-note-fade-black 10s ease-out forwards;
+}
+
+.piano-key.black.correct-note:hover {
+  background: #14532d;
+}
+
+@keyframes correct-note-fade-white {
+  0% {
+    background: #dcfce7;
+    border-color: #86efac;
+  }
+  100% {
+    background: #ffffff;
+    border-color: #d1d5db;
+  }
+}
+
+@keyframes correct-note-fade-black {
+  0% {
+    background: #166534;
+    border-color: #166534;
+  }
+  100% {
+    background: #111827;
+    border-color: #111827;
+  }
+}
+
+.piano-key:active {
+  transform: translateY(1px);
+}
+
+.piano-key.black:active {
+  transform: translate(-50%, 1px);
+}
+
+.key-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4b5563;
+}
+
+.root-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #2563eb;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.piano-key.black .root-dot {
+  top: 8px;
+  background: #93c5fd;
+}
+
 .actions {
   margin-top: 16px;
   display: flex;
@@ -271,5 +475,25 @@ button,
 
   .checks {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .input-keyboard {
+    gap: 8px;
+  }
+
+  .keyboard-tools {
+    flex-wrap: wrap;
+  }
+
+  .keyboard-octave {
+    min-height: 160px;
+  }
+
+  .white-keys {
+    height: 160px;
+  }
+
+  .black-keys {
+    height: 96px;
   }
 }
