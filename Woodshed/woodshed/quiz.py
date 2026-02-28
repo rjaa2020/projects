@@ -94,7 +94,7 @@ def _is_enharmonically_correct(correct_notes: tuple[str, ...], guess: tuple[str,
     except KeyError:
         return False
 
-    return guess_pcs == correct_pcs
+    return sorted(guess_pcs) == sorted(correct_pcs)
 
 
 def update_combo_scores(
@@ -106,6 +106,29 @@ def update_combo_scores(
     updated = dict(scores)
     delta = 1 if is_correct else -1
     updated[(root, quality)] = updated.get((root, quality), 0) + delta
+    return updated
+
+
+def update_combo_attempt_times(
+    attempt_times: dict[tuple[str, str], list[float]],
+    prompt: ChordPrompt,
+    answer_time_seconds: float | None,
+) -> dict[tuple[str, str], list[float]]:
+    if answer_time_seconds is None:
+        return dict(attempt_times)
+
+    try:
+        answer_time = float(answer_time_seconds)
+    except (TypeError, ValueError):
+        return dict(attempt_times)
+
+    if answer_time < 0:
+        return dict(attempt_times)
+
+    root, quality = split_chord_symbol(prompt.symbol)
+    updated = {combo: list(times) for combo, times in attempt_times.items()}
+    key = (root, quality)
+    updated.setdefault(key, []).append(answer_time)
     return updated
 
 

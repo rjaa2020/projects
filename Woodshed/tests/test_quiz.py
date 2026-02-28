@@ -1,7 +1,7 @@
 import pytest
 
 from woodshed.quiz import QuizSession, QuizSettings
-from woodshed.quiz import update_combo_scores
+from woodshed.quiz import update_combo_attempt_times, update_combo_scores
 from woodshed.theory import build_seventh_chord
 
 
@@ -20,11 +20,11 @@ def test_check_answer_accepts_enharmonics():
     assert session.check_answer(prompt, "C# F G# C").is_correct is True
 
 
-def test_check_answer_requires_correct_order():
+def test_check_answer_accepts_any_order():
     session = QuizSession(QuizSettings(rounds=1, chord_types=("maj7",)))
     prompt = build_seventh_chord("C", "maj7")
 
-    assert session.check_answer(prompt, "E C G B").is_correct is False
+    assert session.check_answer(prompt, "E C G B").is_correct is True
 
 
 def test_invalid_chord_type_is_rejected():
@@ -46,6 +46,26 @@ def test_update_combo_scores_tracks_correct_and_wrong():
 
     scores = update_combo_scores(scores, prompt, is_correct=False)
     assert scores[("C", "maj7")] == 0
+
+
+def test_update_combo_attempt_times_tracks_by_key_and_quality():
+    prompt = build_seventh_chord("Db", "7")
+    attempt_times = {}
+
+    attempt_times = update_combo_attempt_times(attempt_times, prompt, answer_time_seconds=1.25)
+    attempt_times = update_combo_attempt_times(attempt_times, prompt, answer_time_seconds=0.9)
+
+    assert attempt_times[("Db", "7")] == [1.25, 0.9]
+
+
+def test_update_combo_attempt_times_ignores_negative_or_missing_values():
+    prompt = build_seventh_chord("C", "maj7")
+    attempt_times = {}
+
+    attempt_times = update_combo_attempt_times(attempt_times, prompt, answer_time_seconds=None)
+    attempt_times = update_combo_attempt_times(attempt_times, prompt, answer_time_seconds=-0.2)
+
+    assert ("C", "maj7") not in attempt_times
 
 
 def test_weighted_sampling_prioritizes_negative_scores():

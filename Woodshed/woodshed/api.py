@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
-from .quiz import QuizSession, QuizSettings, update_combo_scores
+from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
 
 app = FastAPI(title="Woodshed API", version="0.1.0")
@@ -35,6 +35,8 @@ class CheckRequest(BaseModel):
     notes: list[str] = Field(min_length=4, max_length=4)
     answer: str
     scores: dict[str, int] = Field(default_factory=dict)
+    attempt_times: dict[str, dict[str, list[float]]] = Field(default_factory=dict)
+    answer_time_seconds: float | None = None
 
 
 class CheckResponse(BaseModel):
@@ -45,6 +47,7 @@ class CheckResponse(BaseModel):
     root: str
     chord_quality: str
     updated_scores: dict[str, int]
+    updated_attempt_times: dict[str, dict[str, list[float]]]
 
 
 @app.get("/health")
@@ -86,6 +89,11 @@ def check_answer(request: CheckRequest) -> CheckResponse:
     result = session.check_answer(prompt, request.answer)
     root, chord_quality = split_chord_symbol(result.prompt.symbol)
     updated_scores = update_combo_scores(_deserialize_scores(request.scores), result.prompt, result.is_correct)
+    updated_attempt_times = update_combo_attempt_times(
+        _deserialize_attempt_times(request.attempt_times),
+        result.prompt,
+        request.answer_time_seconds,
+    )
 
     return CheckResponse(
         is_correct=result.is_correct,
@@ -95,6 +103,7 @@ def check_answer(request: CheckRequest) -> CheckResponse:
         root=root,
         chord_quality=chord_quality,
         updated_scores=_serialize_scores(updated_scores),
+        updated_attempt_times=_serialize_attempt_times(updated_attempt_times),
     )
 
 
@@ -109,6 +118,36 @@ def _deserialize_scores(raw_scores: dict[str, int]) -> dict[tuple[str, str], int
             continue
         root, quality = key.split("|", 1)
         parsed[(root, quality)] = int(value)
+    return parsed
+
+
+def _serialize_attempt_times(
+    attempt_times: dict[tuple[str, str], list[float]],
+) -> dict[str, dict[str, list[float]]]:
+    serialized: dict[str, dict[str, list[float]]] = {}
+    for (root, quality), times in attempt_times.items():
+        serialized.setdefault(root, {})[quality] = [float(value) for value in times]
+    return serialized
+
+
+def _deserialize_attempt_times(
+    raw_attempt_times: dict[str, dict[str, list[float]]],
+) -> dict[tuple[str, str], list[float]]:
+    parsed: dict[tuple[str, str], list[float]] = {}
+    for root, by_quality in raw_attempt_times.items():
+        if not isinstance(by_quality, dict):
+            continue
+        for quality, times in by_quality.items():
+            if not isinstance(times, list):
+                continue
+            key = (str(root), str(quality))
+            numeric_times: list[float] = []
+            for value in times:
+                try:
+                    numeric_times.append(float(value))
+                except (TypeError, ValueError):
+                    continue
+            parsed[key] = numeric_times
     return parsed
 
 

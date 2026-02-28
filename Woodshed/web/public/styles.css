@@ -6,12 +6,40 @@ body {
 }
 
 .container {
-  max-width: 720px;
+  max-width: 1280px;
   margin: 48px auto;
   background: #ffffff;
   border-radius: 12px;
   padding: 28px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.quiz-panel,
+.stats-panel {
+  min-width: 0;
+}
+
+.stats-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.stats-panel h2,
+.stats-panel h3 {
+  margin: 0;
+}
+
+.stats-panel h3 {
+  margin-top: 16px;
+  font-size: 1rem;
 }
 
 h1 {
@@ -152,9 +180,40 @@ button,
 .score-cell {
   font-weight: 700;
   min-width: 56px;
+  white-space: nowrap;
+}
+
+.selected-score-cell {
+  box-shadow: inset 0 0 0 2px #111827;
+}
+
+.score-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-block;
+  width: 100%;
+}
+
+.score-link:hover {
+  text-decoration: underline;
+}
+
+.selected-stat-panel {
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.selected-stat-panel h3 {
+  margin: 0 0 8px;
 }
 
 @media (max-width: 860px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+  }
+
   .prefs-grid {
     grid-template-columns: 1fr;
   }
