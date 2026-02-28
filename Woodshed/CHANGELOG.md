@@ -10,6 +10,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 ### Added
 - Placeholder for upcoming changes.
 
+## [0.2.1] - 2026-02-27
+
+### Changed
+- Disabled browser autocomplete/autofill more aggressively in web quiz forms and answer inputs.
+- Added an incorrect-answer comparison view that highlights matched, missing, and extra notes.
+- Normalized note-name display formatting across feedback, graph titles/labels, stats key labels, and key filter labels (for example, `Bb`, `Eb`).
+
 ## [0.2.0] - 2026-02-27
 
 ### Changed

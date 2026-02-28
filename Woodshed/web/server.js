@@ -70,13 +70,160 @@ function defaultPreferences(options) {
   };
 }
 
-function checkboxGrid(name, items, selectedItems) {
+function checkboxGrid(name, items, selectedItems, labelFormatter = (value) => String(value)) {
   const selected = new Set(selectedItems);
   return items
     .map(
-      (item) => `<label class="check-item"><input type="checkbox" name="${name}" value="${item}" ${selected.has(item) ? 'checked' : ''} /> ${item}</label>`
+      (item) => `<label class="check-item"><input type="checkbox" name="${name}" value="${escapeHtml(item)}" ${selected.has(item) ? 'checked' : ''} /> ${escapeHtml(labelFormatter(item))}</label>`
     )
     .join('');
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function tokenizeNotes(value) {
+  return String(value || '')
+    .split(/[\s,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeNote(value) {
+  return String(value || '').trim().toUpperCase();
+}
+
+const NOTE_PITCH_ORDER = new Map([
+  ['C', 0], ['B#', 0],
+  ['C#', 1], ['DB', 1],
+  ['D', 2],
+  ['D#', 3], ['EB', 3],
+  ['E', 4], ['FB', 4],
+  ['F', 5], ['E#', 5],
+  ['F#', 6], ['GB', 6],
+  ['G', 7],
+  ['G#', 8], ['AB', 8],
+  ['A', 9],
+  ['A#', 10], ['BB', 10],
+  ['B', 11], ['CB', 11]
+]);
+
+function noteOrderRank(note) {
+  const normalized = normalizeNote(note);
+  if (NOTE_PITCH_ORDER.has(normalized)) {
+    return NOTE_PITCH_ORDER.get(normalized);
+  }
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function sortNotesWithClasses(notes, classes) {
+  const paired = notes.map((note, index) => ({ note, className: classes[index], index }));
+  paired.sort((a, b) => {
+    const rankDiff = noteOrderRank(a.note) - noteOrderRank(b.note);
+    if (rankDiff !== 0) {
+      return rankDiff;
+    }
+
+    const normalizedDiff = normalizeNote(a.note).localeCompare(normalizeNote(b.note));
+    if (normalizedDiff !== 0) {
+      return normalizedDiff;
+    }
+
+    return a.index - b.index;
+  });
+
+  return {
+    notes: paired.map((item) => item.note),
+    classes: paired.map((item) => item.className)
+  };
+}
+
+function formatDisplayNote(note) {
+  const normalized = normalizeNote(note);
+  if (!normalized) {
+    return '';
+  }
+
+  const tonic = normalized.charAt(0);
+  const accidental = normalized.slice(1).replace(/B/g, 'b');
+  return `${tonic}${accidental}`;
+}
+
+function formatDisplayNotesList(notes) {
+  const formatted = (Array.isArray(notes) ? notes : [])
+    .map((note) => formatDisplayNote(note))
+    .filter(Boolean);
+  return formatted.length ? formatted.join(', ') : '—';
+}
+
+function formatDisplayChordSymbol(root, quality) {
+  return `${formatDisplayNote(root)}${String(quality || '').trim()}`;
+}
+
+function noteCountMap(notes) {
+  const counts = new Map();
+  notes.forEach((note) => {
+    const normalized = normalizeNote(note);
+    if (!normalized) {
+      return;
+    }
+    counts.set(normalized, (counts.get(normalized) || 0) + 1);
+  });
+  return counts;
+}
+
+function renderNoteChips(notes, classes) {
+  if (!notes.length) {
+    return '<span class="note-chip note-empty">—</span>';
+  }
+
+  return notes
+    .map((note, index) => `<span class="note-chip ${classes[index]}">${escapeHtml(formatDisplayNote(note))}</span>`)
+    .join(' ');
+}
+
+function renderIncorrectAnswerMessage(promptSymbol, userAnswer, correctNotes) {
+  const userNotes = tokenizeNotes(userAnswer);
+  const normalizedCorrectCounts = noteCountMap(correctNotes);
+  const matchedCounts = new Map();
+
+  const userClasses = userNotes.map((note) => {
+    const normalized = normalizeNote(note);
+    const available = normalizedCorrectCounts.get(normalized) || 0;
+    if (available > 0) {
+      normalizedCorrectCounts.set(normalized, available - 1);
+      matchedCounts.set(normalized, (matchedCounts.get(normalized) || 0) + 1);
+      return 'note-match';
+    }
+    return 'note-extra';
+  });
+
+  const correctClasses = correctNotes.map((note) => {
+    const normalized = normalizeNote(note);
+    const matched = matchedCounts.get(normalized) || 0;
+    if (matched > 0) {
+      matchedCounts.set(normalized, matched - 1);
+      return 'note-match';
+    }
+    return 'note-missing';
+  });
+
+  const sortedUser = sortNotesWithClasses(userNotes, userClasses);
+  const sortedCorrect = sortNotesWithClasses(correctNotes, correctClasses);
+  const userChips = renderNoteChips(sortedUser.notes, sortedUser.classes);
+  const correctChips = renderNoteChips(sortedCorrect.notes, sortedCorrect.classes);
+
+  return `<div><strong>Not quite.</strong> ${escapeHtml(promptSymbol)} note comparison:</div>
+    <div class="answer-diff">
+      <div class="diff-row"><span class="diff-label">Your input</span>${userChips}</div>
+      <div class="diff-row"><span class="diff-label">Correct</span>${correctChips}</div>
+    </div>`;
 }
 
 function buildPromptPayload(preferences) {
@@ -166,7 +313,7 @@ function buildTimeSeriesPath(values, width, height, padding) {
 }
 
 function renderAttemptGraphPage({ root, quality, attempts }) {
-  const title = `${root}${quality}`;
+  const title = formatDisplayChordSymbol(root, quality);
   const average = attempts.length
     ? attempts.reduce((sum, value) => sum + value, 0) / attempts.length
     : null;
@@ -178,7 +325,7 @@ function renderAttemptGraphPage({ root, quality, attempts }) {
   const pathPoints = buildTimeSeriesPath(attempts, width, height, padding);
 
   const graphMarkup = attempts.length
-    ? `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Attempt time graph for ${title}">
+    ? `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Attempt time graph for ${escapeHtml(title)}">
         <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#9ca3af" stroke-width="1" />
         <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#9ca3af" stroke-width="1" />
         <polyline points="${pathPoints}" fill="none" stroke="#2563eb" stroke-width="2" />
@@ -199,7 +346,7 @@ function renderAttemptGraphPage({ root, quality, attempts }) {
   </head>
   <body>
     <main class="container">
-      <h1>${title} Response Time</h1>
+      <h1>${escapeHtml(title)} Response Time</h1>
       ${statsSummary}
 
       <div class="actions">
@@ -222,6 +369,7 @@ function renderInlineSelectedStat({ selectedStat, preferences }) {
   }
 
   const { root, quality } = selectedStat;
+  const title = formatDisplayChordSymbol(root, quality);
   const attempts = attemptsFor(preferences.attemptTimes, root, quality);
   const average = averageAttemptTime(preferences.attemptTimes, root, quality);
   const maxValue = attempts.length ? Math.max(...attempts) : null;
@@ -232,7 +380,7 @@ function renderInlineSelectedStat({ selectedStat, preferences }) {
   const pathPoints = buildTimeSeriesPath(attempts, width, height, padding);
 
   const graphMarkup = attempts.length
-    ? `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Time versus attempt graph for ${root}${quality}">
+    ? `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="Time versus attempt graph for ${escapeHtml(title)}">
         <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#9ca3af" stroke-width="1" />
         <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#9ca3af" stroke-width="1" />
         <polyline points="${pathPoints}" fill="none" stroke="#2563eb" stroke-width="2" />
@@ -246,7 +394,7 @@ function renderInlineSelectedStat({ selectedStat, preferences }) {
     : 'Average Time: — | Attempts: 0';
 
   return `<section class="selected-stat-panel">
-      <h3>${root}${quality} Time vs Attempt</h3>
+      <h3>${escapeHtml(title)} Time vs Attempt</h3>
       <p class="subtitle">${summary}</p>
       <div class="table-wrap">${graphMarkup}</div>
     </section>`;
@@ -302,7 +450,7 @@ function renderStatsPanel({ options, preferences, selectedStat }) {
           </td>`;
         })
         .join('');
-      return `<tr><th>${root}</th>${cells}</tr>`;
+      return `<tr><th>${escapeHtml(formatDisplayNote(root))}</th>${cells}</tr>`;
     })
     .join('');
 
@@ -349,12 +497,14 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
 
       <div class="app-layout">
         <section class="quiz-panel">
-          <form method="post" action="/preferences" class="prefs">
+          <form method="post" action="/preferences" class="prefs" autocomplete="off">
+            <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
+            <input type="password" name="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <h2>Practice Filters</h2>
             <div class="prefs-grid">
               <section>
                 <h3>Include Keys</h3>
-                <div class="checks">${checkboxGrid('includeKeys', options.keys, preferences.includeKeys)}</div>
+                <div class="checks">${checkboxGrid('includeKeys', options.keys, preferences.includeKeys, formatDisplayNote)}</div>
               </section>
               <section>
                 <h3>Include Chord Qualities</h3>
@@ -370,9 +520,11 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
           <div class="meta">Round: ${round} | Score: ${score}</div>
           <div class="prompt">${safePrompt}</div>
 
-          <form method="post" action="/check">
+          <form method="post" action="/check" autocomplete="off">
+            <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
+            <input type="password" name="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <label for="answer">Enter 4 notes in any order</label>
-            <input id="answer" name="answer" type="text" placeholder="C E G B or C,E,G,B" autofocus required />
+            <input id="answer" name="answer" type="text" placeholder="C E G B or C,E,G,B" autocomplete="off" autofocus required />
 
             <div class="actions">
               <button type="submit">Submit</button>
@@ -388,6 +540,20 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
         ${statsPanel}
       </div>
     </main>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const forms = document.querySelectorAll('form');
+        forms.forEach((form) => form.setAttribute('autocomplete', 'off'));
+
+        const answerInput = document.getElementById('answer');
+        if (answerInput) {
+          answerInput.setAttribute('autocomplete', 'off');
+          answerInput.setAttribute('autocorrect', 'off');
+          answerInput.setAttribute('autocapitalize', 'off');
+          answerInput.setAttribute('spellcheck', 'false');
+        }
+      });
+    </script>
   </body>
 </html>`;
 }
@@ -640,8 +806,8 @@ app.post('/check', async (req, res) => {
     req.session.selectedStat = selectedStat;
 
     const message = isCorrect
-      ? `Correct. ${currentPrompt.symbol} = ${currentPrompt.notes.join(', ')}`
-      : `Not quite. ${currentPrompt.symbol} = ${currentPrompt.notes.join(', ')}`;
+      ? `Correct. ${escapeHtml(currentPrompt.symbol)} = ${escapeHtml(formatDisplayNotesList(currentPrompt.notes))}`
+      : renderIncorrectAnswerMessage(currentPrompt.symbol, answer, currentPrompt.notes);
 
     res.send(
       renderMainPage({

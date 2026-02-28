@@ -1,6 +1,6 @@
 {
   "name": "woodshed-web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Node.js web GUI for Woodshed seventh-chord trainer",
   "main": "server.js",
