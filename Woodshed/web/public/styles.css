@@ -22,8 +22,14 @@ body {
 }
 
 .quiz-panel,
-.stats-panel {
+.stats-panel,
+.side-panel {
   min-width: 0;
+}
+
+.side-panel {
+  display: grid;
+  gap: 16px;
 }
 
 .stats-panel {
@@ -57,6 +63,51 @@ h1 {
   margin: 20px 0;
 }
 
+.named-save-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.named-save-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.named-save-title {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.named-save-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.named-save-fields input,
+.named-save-fields select {
+  min-width: 0;
+}
+
+.named-save-fields #activeUser {
+  flex: 1;
+}
+
+.named-save-fields #savedUsers {
+  width: 190px;
+}
+
+.named-save-actions {
+  margin-top: 0;
+  margin-left: auto;
+}
+
 .prefs {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -80,10 +131,167 @@ h1 {
   gap: 14px;
 }
 
+.prefs-stack {
+  display: grid;
+  gap: 14px;
+}
+
 .checks {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
+}
+
+.quality-checks {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.quality-checks .check-item {
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fifths-wrap {
+  margin-top: 8px;
+}
+
+.fifths-circle {
+  position: relative;
+  width: 300px;
+  height: 300px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: conic-gradient(
+    from -90deg,
+    #cfd4d9 0deg 30deg,
+    #c4cbd1 30deg 60deg,
+    #cfd4d9 60deg 90deg,
+    #c4cbd1 90deg 120deg,
+    #cfd4d9 120deg 150deg,
+    #c4cbd1 150deg 180deg,
+    #cfd4d9 180deg 210deg,
+    #c4cbd1 210deg 240deg,
+    #cfd4d9 240deg 270deg,
+    #c4cbd1 270deg 300deg,
+    #cfd4d9 300deg 330deg,
+    #c4cbd1 330deg 360deg
+  );
+  box-shadow: inset 0 0 0 1px #0b1117;
+}
+
+.fifths-guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.fifths-guides circle,
+.fifths-guides line {
+  fill: none;
+  stroke: #061018;
+  stroke-width: 0.5;
+}
+
+.fifths-guides circle:first-child {
+  stroke-width: 1.4;
+}
+
+.fifths-guides circle:nth-child(2) {
+  stroke-width: 1.2;
+}
+
+.fifths-guides circle:nth-child(3) {
+  stroke-width: 1.2;
+}
+
+.fifths-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 999px;
+  background: #d1d5db;
+  border: 5px solid #061018;
+  pointer-events: none;
+}
+
+.fifths-key {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  border: 1.5px solid transparent;
+  background: transparent;
+  color: #061018;
+  border-radius: 999px;
+  min-width: 42px;
+  min-height: 33px;
+  padding: 2px 5px;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.fifths-key:hover {
+  background: rgba(255, 255, 255, 0.45);
+  border-color: rgba(6, 16, 24, 0.22);
+}
+
+.fifths-key.selected {
+  background: #111827;
+  border-color: #f9fafb;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px #111827;
+}
+
+.fifths-key .note-accidental {
+  font-size: 0.5em;
+  position: relative;
+  top: -0.5em;
+  margin-left: 0.02em;
+}
+
+.fifths-minor {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  color: #061018;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.fifths-minor .note-accidental {
+  font-size: 0.54em;
+  position: relative;
+  top: -0.42em;
+  margin-left: 0.02em;
+}
+
+.minor-suffix {
+  margin-left: 0.04em;
 }
 
 .check-item {
@@ -100,7 +308,8 @@ label {
   font-weight: 600;
 }
 
-input[type="text"] {
+input[type="text"],
+select {
   width: 100%;
   box-sizing: border-box;
   padding: 12px;
@@ -109,214 +318,11 @@ input[type="text"] {
   font-size: 1rem;
 }
 
-.timer-bar {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.timer-label {
-  font-weight: 700;
-  color: #374151;
-}
-
-.timer-value {
-  font-variant-numeric: tabular-nums;
-  color: #111827;
-}
-
-.timer-state {
-  font-size: 0.82rem;
-  font-weight: 700;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  padding: 2px 8px;
-  color: #374151;
-  background: #f9fafb;
-}
-
-.paused-notice {
-  margin-top: 10px;
-  margin-bottom: 0;
-  padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: #f9fafb;
-  color: #374151;
-  font-weight: 600;
-}
-
-.input-keyboard-wrap {
-  margin-top: 12px;
-}
-
-.input-keyboard {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-
-.keyboard-tools {
-  margin-top: 10px;
-  display: flex;
-  gap: 8px;
-}
-
-.key-tool-btn {
-  border: 1px solid #d1d5db;
-  background: #f9fafb;
-  color: #1f2937;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.key-tool-btn:hover {
-  background: #f3f4f6;
-}
-
-.keyboard-octave {
-  position: relative;
-  flex: 1;
-  min-height: 180px;
-  user-select: none;
-}
-
-.white-keys {
-  height: 180px;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 2px;
-}
-
-.black-keys {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 110px;
-  pointer-events: none;
-}
-
-.piano-key {
-  border: 1px solid #d1d5db;
-  border-radius: 0 0 8px 8px;
-  cursor: pointer;
-  position: relative;
-  font: inherit;
-}
-
-.piano-key.white {
-  background: #ffffff;
-  color: #1f2937;
-  padding-bottom: 8px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.piano-key.white:hover {
-  background: #f9fafb;
-}
-
-.piano-key.white.correct-note {
-  background: #dcfce7;
-  border-color: #86efac;
-  animation: correct-note-fade-white 10s ease-out forwards;
-}
-
-.piano-key.white.correct-note:hover {
-  background: #bbf7d0;
-}
-
-.piano-key.black {
-  pointer-events: auto;
-  position: absolute;
-  top: 0;
-  width: 10%;
-  height: 100%;
-  transform: translateX(-50%);
-  background: #111827;
-  border-color: #111827;
-  border-radius: 0 0 6px 6px;
-  z-index: 2;
-}
-
-.piano-key.black:hover {
-  background: #1f2937;
-}
-
-.piano-key.black.correct-note {
-  background: #166534;
-  border-color: #166534;
-  animation: correct-note-fade-black 10s ease-out forwards;
-}
-
-.piano-key.black.correct-note:hover {
-  background: #14532d;
-}
-
-@keyframes correct-note-fade-white {
-  0% {
-    background: #dcfce7;
-    border-color: #86efac;
-  }
-  100% {
-    background: #ffffff;
-    border-color: #d1d5db;
-  }
-}
-
-@keyframes correct-note-fade-black {
-  0% {
-    background: #166534;
-    border-color: #166534;
-  }
-  100% {
-    background: #111827;
-    border-color: #111827;
-  }
-}
-
-.piano-key:active {
-  transform: translateY(1px);
-}
-
-.piano-key.black:active {
-  transform: translate(-50%, 1px);
-}
-
-.key-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #4b5563;
-}
-
-.root-dot {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #2563eb;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.piano-key.black .root-dot {
-  top: 8px;
-  background: #93c5fd;
-}
-
 .actions {
   margin-top: 16px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 button,
@@ -469,31 +475,45 @@ button,
     grid-template-columns: 1fr;
   }
 
-  .prefs-grid {
-    grid-template-columns: 1fr;
+  .named-save-fields {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .named-save-fields #savedUsers {
+    width: 100%;
+  }
+
+  .named-save-actions {
+    margin-left: 0;
+  }
+
+  .fifths-circle {
+    width: 250px;
+    height: 250px;
+  }
+
+  .fifths-key {
+    font-size: 1.72rem;
+    min-width: 34px;
+    min-height: 27px;
+  }
+
+  .fifths-minor {
+    font-size: 0.68rem;
+  }
+
+  .fifths-center {
+    width: 82px;
+    height: 82px;
   }
 
   .checks {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .input-keyboard {
-    gap: 8px;
-  }
-
-  .keyboard-tools {
-    flex-wrap: wrap;
-  }
-
-  .keyboard-octave {
-    min-height: 160px;
-  }
-
-  .white-keys {
-    height: 160px;
-  }
-
-  .black-keys {
-    height: 96px;
+  .quality-checks {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }

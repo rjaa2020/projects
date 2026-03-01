@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
 
-app = FastAPI(title="Woodshed API", version="0.1.0")
+app = FastAPI(title="Woodshed API", version="3.1.0")
 
 
 class PromptRequest(BaseModel):

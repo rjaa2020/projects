@@ -20,6 +20,13 @@ def test_check_answer_accepts_enharmonics():
     assert session.check_answer(prompt, "C# F G# C").is_correct is True
 
 
+def test_check_answer_accepts_double_accidentals():
+    session = QuizSession(QuizSettings(rounds=1, chord_types=("maj7",)))
+    prompt = build_seventh_chord("C", "maj7")
+
+    assert session.check_answer(prompt, "B# D## Fx A##").is_correct is True
+
+
 def test_check_answer_accepts_any_order():
     session = QuizSession(QuizSettings(rounds=1, chord_types=("maj7",)))
     prompt = build_seventh_chord("C", "maj7")

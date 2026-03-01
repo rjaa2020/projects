@@ -20,6 +20,14 @@ This file defines required versioning behavior for LLM/code assistants.
 3. Do not create a release section without updating `pyproject.toml`.
 4. Do not update `pyproject.toml` without adding a matching changelog release section.
 
+## Mandatory changelog coverage for LLM edits
+
+- Every non-trivial code change made by an LLM MUST be reflected in `CHANGELOG.md` in the same working session.
+- Do not leave placeholder-only unreleased notes when real code changes were made.
+- For multi-file work, include concise bullets that cover user-visible behavior changes and important technical changes.
+- Classify entries under Keep a Changelog sections (`Added`, `Changed`, `Fixed`, `Removed`) whenever possible.
+- Before finishing, verify changelog coverage for modified features/routes/UI and update `Unreleased` if anything is missing.
+
 ## Launcher gating requirement
 
 `Launch-Woodshed-Web.bat` gates startup by release version:

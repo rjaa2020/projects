@@ -8,7 +8,6 @@ from .theory import (
     CHORD_FORMULAS,
     DEFAULT_CHORD_TYPES,
     PRACTICE_ROOTS,
-    ROOT_INDEX,
     ChordPrompt,
     build_seventh_chord,
     split_chord_symbol,
@@ -78,20 +77,74 @@ class QuizSession:
 
 
 def _normalize_note_token(note: str) -> str:
-    cleaned = note.strip().replace("♯", "#").replace("♭", "b")
+    cleaned = (
+        note.strip()
+        .replace("♯", "#")
+        .replace("♭", "b")
+        .replace("𝄪", "x")
+        .replace("𝄫", "bb")
+    )
     if not cleaned:
         return ""
     return cleaned[0].upper() + cleaned[1:]
+
+
+_NATURAL_NOTE_PITCH = {
+    "C": 0,
+    "D": 2,
+    "E": 4,
+    "F": 5,
+    "G": 7,
+    "A": 9,
+    "B": 11,
+}
+
+
+def _note_to_pitch_class(note: str) -> int | None:
+    normalized = _normalize_note_token(note)
+    match = re.fullmatch(r"([A-G])([#bxBX]*)", normalized)
+    if not match:
+        return None
+
+    base_note = match.group(1)
+    accidental_text = match.group(2) or ""
+    base_pitch = _NATURAL_NOTE_PITCH.get(base_note)
+    if base_pitch is None:
+        return None
+
+    delta = 0
+    for accidental in accidental_text:
+        if accidental == "#":
+            delta += 1
+        elif accidental in {"b", "B"}:
+            delta -= 1
+        elif accidental in {"x", "X"}:
+            delta += 2
+        else:
+            return None
+
+    return (base_pitch + delta) % 12
 
 
 def _is_enharmonically_correct(correct_notes: tuple[str, ...], guess: tuple[str, ...]) -> bool:
     if len(correct_notes) != len(guess):
         return False
 
-    try:
-        correct_pcs = tuple(ROOT_INDEX[note] for note in correct_notes)
-        guess_pcs = tuple(ROOT_INDEX[note] for note in guess)
-    except KeyError:
+    correct_pcs = []
+    for note in correct_notes:
+        pitch_class = _note_to_pitch_class(note)
+        if pitch_class is None:
+            return False
+        correct_pcs.append(pitch_class)
+
+    guess_pcs = []
+    for note in guess:
+        pitch_class = _note_to_pitch_class(note)
+        if pitch_class is None:
+            return False
+        guess_pcs.append(pitch_class)
+
+    if len(correct_pcs) != len(guess_pcs):
         return False
 
     return sorted(guess_pcs) == sorted(correct_pcs)
