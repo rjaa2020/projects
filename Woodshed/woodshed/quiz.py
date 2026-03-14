@@ -69,6 +69,29 @@ class QuizSession:
         root, quality = self.rng.choices(combinations, weights=weights, k=1)[0]
         return build_seventh_chord(root, quality)
 
+    def generate_prompt_from_symbols(
+        self,
+        chord_symbols: tuple[str, ...],
+        scores: dict[tuple[str, str], int] | None = None,
+    ) -> ChordPrompt:
+        parsed: list[tuple[str, str]] = []
+        for symbol in chord_symbols:
+            try:
+                parsed.append(split_chord_symbol(symbol))
+            except ValueError:
+                continue
+
+        if not parsed:
+            raise ValueError("No supported chord symbols available in chart")
+
+        if not scores:
+            root, quality = self.rng.choice(parsed)
+            return build_seventh_chord(root, quality)
+
+        weights = [_selection_weight(scores.get((root, quality), 0)) for root, quality in parsed]
+        root, quality = self.rng.choices(parsed, weights=weights, k=1)[0]
+        return build_seventh_chord(root, quality)
+
     def check_answer(self, prompt: ChordPrompt, raw_answer: str) -> RoundResult:
         tokens = re.split(r"[\s,]+", raw_answer.strip())
         guess = tuple(_normalize_note_token(token) for token in tokens if token.strip())

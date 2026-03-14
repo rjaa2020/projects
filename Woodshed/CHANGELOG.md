@@ -7,6 +7,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-03-13
+
 ### Added
 - Replaced the quiz's piano input area with a selectable Circle of Fifths key selector.
 - Added a styled Circle of Fifths visualization with concentric rings, radial dividers, and inner relative-minor labels.
@@ -17,6 +19,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added named user save caching in the web app with `Load User` and `Save User` controls.
 - Added on-disk web save storage at `web/data/user-saves.json` for cross-session progress continuation.
 - Added a saved-user dropdown with one-click load behavior in the web filters.
+- Added Jazz 1460 catalog integration via iReal forum links with on-demand song fetch and local chart caching.
+- Added chart-only quiz mode so prompts are restricted to supported seventh-chord symbols from the selected song.
+- Added instrument-key selection (`C`, `Bb`, `Eb`) for chart mode with transposed quiz prompts.
+- Added chart-mode and parser tests for iReal extraction, minimal payload parsing, and instrument transposition.
+- Added filter-mode tabs in the right panel above stats, with `Jazz 1460` as the default tab and `Circle + Qualities` as the second tab.
 
 ### Changed
 - Wired Circle of Fifths key toggles directly to practice-key selection (`includeKeys`) in the web filters.
@@ -30,6 +37,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Updated web session flow to preserve in-progress state on refresh and persist active-user progress after score/filter/stat updates.
 - Moved named-save controls into a dedicated panel below the logo and above the quiz, separate from filters/stats content.
 - Restyled named-save controls as a top horizontal ribbon (login-style) with inline user/select fields and compact load/save/quit actions.
+- Updated stats rendering in chart mode to grey out unavailable key/chord cells and disable their click-through behavior.
 
 ### Removed
 - Removed obsolete piano/timer-adjacent UI code paths and styling now that key selection is circle-based.

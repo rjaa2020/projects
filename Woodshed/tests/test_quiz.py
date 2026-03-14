@@ -171,3 +171,18 @@ def test_weighted_sampling_prioritizes_underexplored_qualities():
             dominant_count += 1
 
     assert maj7_count > dominant_count
+
+
+def test_generate_prompt_from_symbols_uses_chart_symbols():
+    session = QuizSession(
+        QuizSettings(
+            rounds=1,
+            include_keys=("C", "Db", "D"),
+            include_modes=("maj7", "7", "min7", "m7b5", "dim7"),
+        )
+    )
+
+    allowed = {"Cmaj7", "Db7", "Dmin7"}
+    for _ in range(40):
+        prompt = session.generate_prompt_from_symbols(tuple(allowed), scores={})
+        assert prompt.symbol in allowed

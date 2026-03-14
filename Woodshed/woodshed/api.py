@@ -3,10 +3,11 @@ from __future__ import annotations
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from .ireal import get_jazz1460_catalog, get_or_fetch_jazz1460_chart, transpose_quiz_chords_for_instrument
 from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
 
-app = FastAPI(title="Woodshed API", version="3.1.0")
+app = FastAPI(title="Woodshed API", version="3.2.0")
 
 
 class PromptRequest(BaseModel):
@@ -18,6 +19,8 @@ class PromptRequest(BaseModel):
     include_modes: list[str] = Field(default_factory=list)
     exclude_modes: list[str] = Field(default_factory=list)
     scores: dict[str, int] = Field(default_factory=dict)
+    chart_chords: list[str] = Field(default_factory=list)
+    instrument_key: str = "C"
 
 
 class PromptResponse(BaseModel):
@@ -28,6 +31,23 @@ class PromptResponse(BaseModel):
 class OptionsResponse(BaseModel):
     keys: list[str]
     chord_qualities: list[str]
+
+
+class IRealSongListResponse(BaseModel):
+    songs: list[str]
+
+
+class IRealSongSelectRequest(BaseModel):
+    title: str
+
+
+class IRealSongSelectResponse(BaseModel):
+    title: str
+    composer: str
+    style: str
+    key: str
+    total_chords: int
+    quiz_chords: list[str]
 
 
 class CheckRequest(BaseModel):
@@ -60,6 +80,25 @@ def options() -> OptionsResponse:
     return OptionsResponse(keys=list(PRACTICE_ROOTS), chord_qualities=list(DEFAULT_CHORD_TYPES))
 
 
+@app.get("/ireal/jazz1460/songs", response_model=IRealSongListResponse)
+def ireal_jazz1460_songs() -> IRealSongListResponse:
+    songs = get_jazz1460_catalog()
+    return IRealSongListResponse(songs=[song.title for song in songs])
+
+
+@app.post("/ireal/jazz1460/song", response_model=IRealSongSelectResponse)
+def ireal_jazz1460_song(request: IRealSongSelectRequest) -> IRealSongSelectResponse:
+    chart = get_or_fetch_jazz1460_chart(request.title)
+    return IRealSongSelectResponse(
+        title=chart.title,
+        composer=chart.composer,
+        style=chart.style,
+        key=chart.key,
+        total_chords=len(chart.quiz_chords),
+        quiz_chords=list(chart.quiz_chords),
+    )
+
+
 @app.post("/prompt", response_model=PromptResponse)
 def generate_prompt(request: PromptRequest) -> PromptResponse:
     include_qualities = (
@@ -78,7 +117,12 @@ def generate_prompt(request: PromptRequest) -> PromptResponse:
         exclude_modes=tuple(exclude_qualities),
     )
     session = QuizSession(settings)
-    prompt = session.generate_prompt(scores=_deserialize_scores(request.scores))
+    scores = _deserialize_scores(request.scores)
+    if request.chart_chords:
+        instrument_chords = transpose_quiz_chords_for_instrument(tuple(request.chart_chords), request.instrument_key)
+        prompt = session.generate_prompt_from_symbols(instrument_chords, scores=scores)
+    else:
+        prompt = session.generate_prompt(scores=scores)
     return PromptResponse(symbol=prompt.symbol, notes=list(prompt.notes))
 
 

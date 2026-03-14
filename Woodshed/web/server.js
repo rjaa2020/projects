@@ -8,6 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_BASE_URL = process.env.WOODSHED_API_URL || 'http://127.0.0.1:8000';
 const USER_SAVE_FILE = path.join(__dirname, 'data', 'user-saves.json');
+const INSTRUMENT_KEYS = ['C', 'Bb', 'Eb'];
+const PRACTICE_ROOT_ORDER = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -58,18 +60,50 @@ function normalizeSelections(values) {
 function mergePreferences(body, existingPreferences, options) {
   const includeKeys = normalizeSelections(toArray(body.includeKeys));
   const includeChordQualities = normalizeSelections(toArray(body.includeChordQualities));
+  const requestedInstrument = String(body.instrumentKey || '').trim();
+  const instrumentKey = INSTRUMENT_KEYS.includes(requestedInstrument)
+    ? requestedInstrument
+    : (existingPreferences && INSTRUMENT_KEYS.includes(existingPreferences.instrumentKey) ? existingPreferences.instrumentKey : 'C');
 
   return {
     ...(existingPreferences || {}),
     includeKeys: includeKeys.filter((item) => options.keys.includes(item)),
-    includeChordQualities: includeChordQualities.filter((item) => options.chord_qualities.includes(item))
+    includeChordQualities: includeChordQualities.filter((item) => options.chord_qualities.includes(item)),
+    instrumentKey
   };
 }
 
 function defaultPreferences(options) {
   return {
     includeKeys: [...options.keys],
-    includeChordQualities: [...options.chord_qualities]
+    includeChordQualities: [...options.chord_qualities],
+    instrumentKey: 'C',
+    chartQuiz: null
+  };
+}
+
+function coerceInstrumentKey(rawInstrumentKey) {
+  const key = String(rawInstrumentKey || '').trim();
+  return INSTRUMENT_KEYS.includes(key) ? key : 'C';
+}
+
+function coerceChartQuiz(rawChartQuiz) {
+  const chart = plainObject(rawChartQuiz);
+  if (typeof chart.title !== 'string' || !chart.title.trim()) {
+    return null;
+  }
+
+  const chords = Array.isArray(chart.chords)
+    ? chart.chords.filter((item) => typeof item === 'string' && item.trim())
+    : [];
+
+  if (!chords.length) {
+    return null;
+  }
+
+  return {
+    title: chart.title.trim(),
+    chords
   };
 }
 
@@ -122,8 +156,10 @@ function coercePreferences(rawPreferences, options) {
   return {
     includeKeys: includeKeys.length ? includeKeys : defaults.includeKeys,
     includeChordQualities: includeChordQualities.length ? includeChordQualities : defaults.includeChordQualities,
+    instrumentKey: coerceInstrumentKey(raw.instrumentKey),
     scores: plainObject(raw.scores),
-    attemptTimes: plainObject(raw.attemptTimes)
+    attemptTimes: plainObject(raw.attemptTimes),
+    chartQuiz: coerceChartQuiz(raw.chartQuiz)
   };
 }
 
@@ -507,13 +543,49 @@ function renderIncorrectAnswerMessage(promptSymbol, userAnswer, correctNotes) {
 }
 
 function buildPromptPayload(preferences) {
+  const chartQuiz = coerceChartQuiz(preferences.chartQuiz);
+  const instrumentKey = coerceInstrumentKey(preferences.instrumentKey);
   return {
     include_keys: preferences.includeKeys,
     include_chord_qualities: preferences.includeChordQualities,
     exclude_keys: [],
     exclude_chord_qualities: [],
-    scores: preferences.scores
+    scores: preferences.scores,
+    chart_chords: chartQuiz ? chartQuiz.chords : [],
+    instrument_key: instrumentKey
   };
+}
+
+function chartAvailableComboSet(preferences) {
+  const chartQuiz = coerceChartQuiz(preferences && preferences.chartQuiz);
+  if (!chartQuiz) {
+    return null;
+  }
+
+  const instrumentKey = coerceInstrumentKey(preferences && preferences.instrumentKey);
+  const semitoneOffsetByInstrument = { C: 0, Bb: 2, Eb: 9 };
+  const semitoneOffset = semitoneOffsetByInstrument[instrumentKey] || 0;
+  const rootIndexByName = Object.fromEntries(PRACTICE_ROOT_ORDER.map((root, index) => [root, index]));
+  const available = new Set();
+
+  chartQuiz.chords.forEach((symbol) => {
+    const match = String(symbol || '').trim().match(/^([A-G][#b]?)(.+)$/);
+    if (!match) {
+      return;
+    }
+
+    const root = match[1];
+    const quality = match[2];
+    const rootIndex = rootIndexByName[root];
+    if (!Number.isInteger(rootIndex)) {
+      return;
+    }
+
+    const shiftedRoot = PRACTICE_ROOT_ORDER[(rootIndex + semitoneOffset) % PRACTICE_ROOT_ORDER.length];
+    available.add(`${shiftedRoot}|${quality}`);
+  });
+
+  return available;
 }
 
 function resetScores(preferences) {
@@ -677,11 +749,20 @@ function selectedAxes(options, preferences) {
 
 function renderStatsPanel({ options, preferences, selectedStat }) {
   const axes = selectedAxes(options, preferences);
+  const availableCombos = chartAvailableComboSet(preferences);
   const headerCells = axes.chordQualities.map((quality) => `<th>${quality}</th>`).join('');
   const bodyRows = axes.keys
     .map((root) => {
       const cells = axes.chordQualities
         .map((quality) => {
+          const comboKey = `${root}|${quality}`;
+          const isUnavailable = availableCombos && !availableCombos.has(comboKey);
+          if (isUnavailable) {
+            return `<td class="score-cell unavailable-score-cell" title="Not present in loaded chart">
+            <span class="score-link score-link-disabled">—</span>
+          </td>`;
+          }
+
           const ratioData = correctIncorrectRatio(preferences.scores, preferences.attemptTimes, root, quality);
           const colors = ratioCellColor(ratioData.ratio);
           const graphUrl = `/select-stat?root=${encodeURIComponent(root)}&quality=${encodeURIComponent(quality)}`;
@@ -746,6 +827,9 @@ function rootPitchClass(prompt) {
 function renderMainPage({ prompt, score, round, resultMessage, resultClass, options, preferences, selectedStat, activeUser = '', savedUsers = [], overallElapsedSeconds = 0 }) {
   const safePrompt = prompt.symbol;
   const circleMarkup = renderCircleOfFifths(options, preferences.includeKeys);
+  const activeChart = coerceChartQuiz(preferences.chartQuiz);
+  const activeChartTitle = activeChart ? activeChart.title : '';
+  const instrumentKey = coerceInstrumentKey(preferences.instrumentKey);
   const savedUserOptions = (Array.isArray(savedUsers) ? savedUsers : [])
     .map((user) => normalizeUserName(user))
     .filter(Boolean)
@@ -784,19 +868,39 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
             <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <input type="password" name="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <h2>Practice Filters</h2>
-            <div class="prefs-stack">
-              <section>
+            <div class="prefs-tabs" role="tablist" aria-label="Practice Mode Tabs">
+              <button type="button" id="tabButtonJazz" class="prefs-tab-button active" role="tab" aria-selected="true" aria-controls="tabPanelJazz" data-tab-target="tabPanelJazz">Jazz 1460</button>
+              <button type="button" id="tabButtonManual" class="prefs-tab-button" role="tab" aria-selected="false" aria-controls="tabPanelManual" data-tab-target="tabPanelManual">Circle + Qualities</button>
+            </div>
+            <div class="prefs-tab-panels">
+              <section id="tabPanelJazz" class="prefs-tab-panel active" role="tabpanel" aria-labelledby="tabButtonJazz">
+                <h3>Jazz 1460 Song Mode</h3>
+                <label for="instrumentKey">Instrument Key</label>
+                <select id="instrumentKey" name="instrumentKey">
+                  <option value="C" ${instrumentKey === 'C' ? 'selected' : ''}>C (Concert Key)</option>
+                  <option value="Bb" ${instrumentKey === 'Bb' ? 'selected' : ''}>Bb</option>
+                  <option value="Eb" ${instrumentKey === 'Eb' ? 'selected' : ''}>Eb</option>
+                </select>
+                <label class="sr-only" for="irealSongSelect">Jazz 1460 song</label>
+                <select id="irealSongSelect" name="songTitle" data-active-title="${escapeHtml(activeChartTitle)}">
+                  <option value="">Load songs...</option>
+                </select>
+                <div class="actions">
+                  <button type="submit" formaction="/ireal-song-select" formmethod="post">Load Song Chart</button>
+                  <button type="submit" formaction="/ireal-song-clear" formmethod="post">Clear Song Mode</button>
+                </div>
+                <p class="footer-note">${activeChart ? `Active chart: ${escapeHtml(activeChart.title)} (${activeChart.chords.length} supported chords) | Instrument: ${escapeHtml(instrumentKey)}` : 'No active chart. Load a song to quiz only its chords.'}</p>
+              </section>
+              <section id="tabPanelManual" class="prefs-tab-panel" role="tabpanel" aria-labelledby="tabButtonManual" hidden>
                 <h3>Include Chord Qualities</h3>
                 <div class="checks quality-checks">${checkboxGrid('includeChordQualities', options.chord_qualities, preferences.includeChordQualities)}</div>
-              </section>
-              <section>
                 <h3>Include Keys</h3>
                 ${circleMarkup}
+                <div class="actions">
+                  <button type="submit">Save Filters</button>
+                  <button type="submit" formaction="/clear-scores" formmethod="post">Clear Score</button>
+                </div>
               </section>
-            </div>
-            <div class="actions">
-              <button type="submit">Save Filters</button>
-              <button type="submit" formaction="/clear-scores" formmethod="post">Clear Score</button>
             </div>
           </form>`;
 
@@ -869,6 +973,59 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
             namedSaveForm.method = 'post';
             namedSaveForm.submit();
           });
+        }
+
+        const tabButtons = Array.from(document.querySelectorAll('.prefs-tab-button'));
+        const tabPanels = Array.from(document.querySelectorAll('.prefs-tab-panel'));
+        const activateTab = (targetId) => {
+          tabButtons.forEach((button) => {
+            const isActive = button.getAttribute('data-tab-target') === targetId;
+            button.classList.toggle('active', isActive);
+            button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          });
+          tabPanels.forEach((panel) => {
+            const isActive = panel.id === targetId;
+            panel.classList.toggle('active', isActive);
+            panel.hidden = !isActive;
+          });
+        };
+        tabButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-tab-target');
+            if (!targetId) {
+              return;
+            }
+            activateTab(targetId);
+          });
+        });
+        activateTab('tabPanelJazz');
+
+        const irealSongSelect = document.getElementById('irealSongSelect');
+        if (irealSongSelect) {
+          fetch('/ireal-songs')
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error('Failed to load song catalog');
+              }
+              return response.json();
+            })
+            .then((payload) => {
+              const songs = Array.isArray(payload && payload.songs) ? payload.songs : [];
+              const activeTitle = String(irealSongSelect.getAttribute('data-active-title') || '').trim();
+              irealSongSelect.innerHTML = '<option value="">Select a song...</option>';
+              songs.forEach((title) => {
+                const option = document.createElement('option');
+                option.value = title;
+                option.textContent = title;
+                if (activeTitle && title === activeTitle) {
+                  option.selected = true;
+                }
+                irealSongSelect.appendChild(option);
+              });
+            })
+            .catch(() => {
+              irealSongSelect.innerHTML = '<option value="">Catalog unavailable</option>';
+            });
         }
 
         const fifthButtons = Array.from(document.querySelectorAll('.fifths-key'));
@@ -991,6 +1148,113 @@ app.get('/', async (req, res) => {
     );
   } catch (error) {
     res.status(500).send(`Failed to initialize quiz: ${error.message}`);
+  }
+});
+
+app.get('/ireal-songs', async (req, res) => {
+  try {
+    const payload = await callApi('/ireal/jazz1460/songs');
+    res.json({ songs: Array.isArray(payload.songs) ? payload.songs : [] });
+  } catch {
+    res.json({ songs: [] });
+  }
+});
+
+app.post('/ireal-song-select', async (req, res) => {
+  try {
+    const options = await callApi('/options');
+    const savedUsers = await listSavedUserNames();
+    req.session.activeUser = normalizeUserName(req.body.activeUser || req.session.activeUser);
+    const selectedTitle = String(req.body.songTitle || '').trim();
+    if (!selectedTitle) {
+      throw new Error('Choose a song before loading chart mode.');
+    }
+
+    const chart = await callApi('/ireal/jazz1460/song', { title: selectedTitle });
+    if (!Array.isArray(chart.quiz_chords) || chart.quiz_chords.length === 0) {
+      throw new Error('No supported chart chords were found for this song.');
+    }
+
+    const currentPreferences = req.session.preferences || defaultPreferences(options);
+    const instrumentKey = coerceInstrumentKey(req.body.instrumentKey || currentPreferences.instrumentKey);
+    const preferences = resetScores({
+      ...currentPreferences,
+      instrumentKey,
+      chartQuiz: {
+        title: String(chart.title || selectedTitle),
+        chords: chart.quiz_chords
+      }
+    });
+
+    req.session.preferences = preferences;
+    req.session.selectedStat = null;
+    req.session.score = 0;
+    req.session.round = 1;
+    req.session.overallElapsedSeconds = 0;
+    req.session.prompt = await callApi('/prompt', buildPromptPayload(preferences));
+    req.session.promptStartedAtMs = Date.now();
+    await persistActiveUserState(req);
+
+    res.send(
+      renderMainPage({
+        prompt: req.session.prompt,
+        score: 0,
+        round: 1,
+        options,
+        preferences,
+        selectedStat: null,
+        activeUser: normalizeUserName(req.session.activeUser),
+        savedUsers,
+        overallElapsedSeconds: 0,
+        resultMessage: `Loaded chart mode for ${escapeHtml(preferences.chartQuiz.title)} (${preferences.chartQuiz.chords.length} supported chords).`,
+        resultClass: 'ok'
+      })
+    );
+  } catch (error) {
+    res.status(500).send(`Failed to load chart mode: ${error.message}`);
+  }
+});
+
+app.post('/ireal-song-clear', async (req, res) => {
+  try {
+    const options = await callApi('/options');
+    const savedUsers = await listSavedUserNames();
+    req.session.activeUser = normalizeUserName(req.body.activeUser || req.session.activeUser);
+
+    const currentPreferences = req.session.preferences || defaultPreferences(options);
+    const instrumentKey = coerceInstrumentKey(req.body.instrumentKey || currentPreferences.instrumentKey);
+    const preferences = resetScores({
+      ...currentPreferences,
+      instrumentKey,
+      chartQuiz: null
+    });
+
+    req.session.preferences = preferences;
+    req.session.selectedStat = null;
+    req.session.score = 0;
+    req.session.round = 1;
+    req.session.overallElapsedSeconds = 0;
+    req.session.prompt = await callApi('/prompt', buildPromptPayload(preferences));
+    req.session.promptStartedAtMs = Date.now();
+    await persistActiveUserState(req);
+
+    res.send(
+      renderMainPage({
+        prompt: req.session.prompt,
+        score: 0,
+        round: 1,
+        options,
+        preferences,
+        selectedStat: null,
+        activeUser: normalizeUserName(req.session.activeUser),
+        savedUsers,
+        overallElapsedSeconds: 0,
+        resultMessage: 'Song chart mode cleared. Returning to key/chord filter mode.',
+        resultClass: 'ok'
+      })
+    );
+  } catch (error) {
+    res.status(500).send(`Failed to clear chart mode: ${error.message}`);
   }
 });
 
@@ -1176,11 +1440,17 @@ app.get('/select-stat', async (req, res) => {
     req.session.preferences = preferences;
 
     const axes = selectedAxes(options, preferences);
+    const availableCombos = chartAvailableComboSet(preferences);
     const root = String(req.query.root || '');
     const quality = String(req.query.quality || '');
 
     if (!axes.keys.includes(root) || !axes.chordQualities.includes(quality)) {
       res.status(400).send('Invalid key or chord quality selection.');
+      return;
+    }
+
+    if (availableCombos && !availableCombos.has(`${root}|${quality}`)) {
+      res.status(400).send('Selected key/chord quality is not present in the loaded chart.');
       return;
     }
 
