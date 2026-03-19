@@ -38,6 +38,48 @@ CHORD_FORMULAS = {
     "dim7": [0, 3, 6, 9],
 }
 
+_QUALITY_ALIASES: dict[str, str] = {
+    "^": "maj7",
+    "^7": "maj7",
+    "△": "maj7",
+    "△7": "maj7",
+    "Δ": "maj7",
+    "Δ7": "maj7",
+    "maj": "maj7",
+    "Maj": "maj7",
+    "MAJ": "maj7",
+    "maj7": "maj7",
+    "Maj7": "maj7",
+    "MAJ7": "maj7",
+    "M": "maj7",
+    "M7": "maj7",
+    "M9": "maj7",
+    "m7": "min7",
+    "m": "min7",
+    "-7": "min7",
+    "-": "min7",
+    "min": "min7",
+    "min7": "min7",
+    "ø7": "m7b5",
+    "ø": "m7b5",
+    "h7": "m7b5",
+    "h": "m7b5",
+    "o7": "dim7",
+    "o": "dim7",
+    "°7": "dim7",
+    "°": "dim7",
+    "9": "7",
+    "maj9": "maj7",
+    "Maj9": "maj7",
+    "MAJ9": "maj7",
+    "min9": "min7",
+    "m9": "min7",
+    "-9": "min7",
+    "m9b5": "m7b5",
+    "dim9": "dim7",
+    "o9": "dim7",
+}
+
 DEFAULT_CHORD_TYPES = tuple(CHORD_FORMULAS.keys())
 PRACTICE_ROOTS = (
     "C",
@@ -105,6 +147,9 @@ def split_chord_symbol(symbol: str) -> tuple[str, str]:
             quality = clean_symbol[len(root):]
             if quality in CHORD_FORMULAS:
                 return root, quality
+            aliased_quality = _QUALITY_ALIASES.get(quality)
+            if aliased_quality is not None:
+                return root, aliased_quality
 
     allowed = ", ".join(f"{root}{quality}" for root in PRACTICE_ROOTS[:3] for quality in DEFAULT_CHORD_TYPES[:2])
     raise ValueError(f"Unsupported chord symbol '{symbol}'. Example symbols: {allowed}")

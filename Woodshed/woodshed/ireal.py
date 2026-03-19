@@ -394,18 +394,31 @@ def _normalize_root_for_practice(root: str) -> str:
 
 def _map_ireal_quality(quality_text: str) -> str | None:
     q = quality_text or ""
-    if "7" not in q:
+    q = q.strip()
+    if not q:
         return None
 
-    if q.startswith("h") or "h7" in q or "-7b5" in q:
+    if q in {"^", "Δ", "△", "maj", "Maj", "M"}:
+        return "maj7"
+    if q in {"-", "m"}:
+        return "min7"
+    if q in {"h", "ø"}:
         return "m7b5"
-    if q.startswith("o"):
+    if q in {"o", "°"}:
+        return "dim7"
+
+    if "7" not in q and "9" not in q:
+        return None
+
+    if q.startswith("h") or q.startswith("ø") or "h7" in q or "ø7" in q or "-7b5" in q:
+        return "m7b5"
+    if q.startswith("o") or q.startswith("°"):
         return "dim7"
     if q.startswith("-"):
         return "min7"
-    if q.startswith("^"):
+    if q.startswith("^") or q.startswith("Δ") or q.startswith("△") or q.lower().startswith("maj") or q.startswith("M"):
         return "maj7"
-    if q.startswith("7") or "7" in q:
+    if q.startswith("7") or q.startswith("9") or "7" in q or "9" in q:
         return "7"
     return None
 

@@ -46,6 +46,22 @@ def test_extract_supported_chords_from_minimal_payload():
     assert chords == ("C7", "Gmin7")
 
 
+def test_extract_supported_quiz_chords_maps_ninth_to_seventh():
+    measures = ("D9", "C^9", "F-9", "Eh9", "Ao9")
+
+    chords = ireal._extract_supported_quiz_chords(measures)
+
+    assert chords == ("D7", "Cmaj7", "Fmin7", "Em7b5", "Adim7")
+
+
+def test_extract_supported_quiz_chords_maps_triangle_to_major_seventh():
+    measures = ("D△7", "CΔ9")
+
+    chords = ireal._extract_supported_quiz_chords(measures)
+
+    assert chords == ("Dmaj7", "Cmaj7")
+
+
 def test_transpose_quiz_chords_for_bb_instrument():
     chords = ("C7", "Dbmaj7", "Fmin7", "Bm7b5")
 
