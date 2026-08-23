@@ -32,13 +32,19 @@ class TestRender(unittest.TestCase):
 
         self.assertIn("Job Application Digest", html)
         self.assertIn("Coverage: Jul 22, 2026 to Aug 21, 2026", html)
+        self.assertIn("Status", html)
+        self.assertIn("Tags", html)
         self.assertIn("Action Needed", html)
         self.assertIn("A &amp; B Co", html)
         self.assertIn("1 updates", html)
+        self.assertIn('data-filter-key="all"', html)
+        self.assertIn("Click a status or tag to filter the dashboard.", html)
         self.assertIn("Please complete &lt;assessment&gt;", html)
         self.assertIn("Use this link &amp; confirm.", html)
         self.assertIn('role="presentation"', html)
-        self.assertNotIn("<script", html.lower())
+        self.assertIn("data-entry-row", html)
+        self.assertIn('data-status-key="action"', html)
+        self.assertIn('data-filter-group="status"', html)
 
 
 if __name__ == "__main__":

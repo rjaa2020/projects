@@ -22,13 +22,14 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List
 
 from googleapiclient.errors import HttpError
 
-from classify import classify_status, company_key, extract_company_name, is_noise_company
+from classify import classify_status, company_key, extract_company_name, extract_proper_noun_phrases, is_noise_company, tag_key
 from config import ATS_DOMAINS
 from gmail_client import (
     JobDigestError,
@@ -43,6 +44,8 @@ from render import format_portable_date, render_digest_html
 
 LOG_FILENAME = "job_digest.log"
 LOG_MAX_BYTES = 3 * 1024 * 1024
+COMMON_TAG_MIN_COUNT = 2
+MAX_TAGS_TOTAL = 18
 
 
 def _configure_logging(log_path: Path) -> logging.Logger:
@@ -134,17 +137,105 @@ def build_entries(service, days: int, logger: logging.Logger | None = None) -> L
                 "excerpt": excerpt,
                 "date": message_dt,
                 "date_label": format_portable_date(message_dt),
+                "tag_keys": [],
+                "tag_labels": [],
+                "raw_text": " ".join([company, latest.subject, latest.snippet, body_text, latest.from_header]),
             }
         )
 
         if logger:
             logger.info("Kept thread %s -> %s [%s]", thread_id, company, status)
 
+    _assign_proper_noun_tags(entries)
     entries.sort(key=lambda item: (str(item.get("company_key", "")), item["date"]))
 
     if logger:
         logger.info("Built %d digest entries", len(entries))
     return entries
+
+
+def _assign_proper_noun_tags(entries: List[Dict[str, object]], max_tags: int = MAX_TAGS_TOTAL) -> None:
+    tag_counts: Counter[str] = Counter()
+    tag_labels: Dict[str, str] = {}
+    entry_candidates: List[List[tuple[str, str]]] = []
+
+    for entry in entries:
+        raw_text = str(entry.get("raw_text", ""))
+        candidates: List[tuple[str, str]] = []
+        seen: set[str] = set()
+
+        for phrase in extract_proper_noun_phrases(raw_text):
+            normalized = tag_key(phrase)
+            if not normalized or normalized in seen or _is_generic_tag(phrase):
+                continue
+
+            seen.add(normalized)
+            candidates.append((normalized, phrase))
+            tag_counts[normalized] += 1
+            tag_labels.setdefault(normalized, phrase)
+
+        entry_candidates.append(candidates)
+
+    ranked_keys = [key for key, count in tag_counts.most_common() if count >= COMMON_TAG_MIN_COUNT]
+    if not ranked_keys:
+        ranked_keys = [key for key, _ in tag_counts.most_common(max_tags)]
+
+    allowed = set(ranked_keys[:max_tags])
+
+    for entry, candidates in zip(entries, entry_candidates):
+        keys: List[str] = []
+        labels: List[str] = []
+
+        for normalized, phrase in candidates:
+            if normalized not in allowed or normalized in keys:
+                continue
+
+            keys.append(normalized)
+            labels.append(tag_labels.get(normalized, phrase))
+
+        if not keys:
+            fallback_key = str(entry.get("company_key", "")).strip()
+            fallback_label = str(entry.get("company", "")).strip()
+            if fallback_key and fallback_label:
+                keys = [fallback_key]
+                labels = [fallback_label]
+
+        entry["tag_keys"] = keys
+        entry["tag_labels"] = labels
+        entry.pop("raw_text", None)
+
+
+def _is_generic_tag(value: str) -> bool:
+    lowered = value.strip().lower()
+    if not lowered:
+        return True
+
+    return lowered in {
+        "application",
+        "applying",
+        "candidate",
+        "candidates",
+        "complete",
+        "email",
+        "gmail",
+        "google",
+        "interview",
+        "job",
+        "jobs",
+        "meet",
+        "meeting",
+        "next steps",
+        "opportunity",
+        "opportunities",
+        "please",
+        "recruiting",
+        "security",
+        "team",
+        "thank you",
+        "thanks",
+        "update",
+        "zoom",
+    }
 
 
 def count_statuses(entries: List[Dict[str, object]]) -> Dict[str, int]:

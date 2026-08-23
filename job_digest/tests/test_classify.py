@@ -1,6 +1,6 @@
 import unittest
 
-from classify import classify_status, company_key, extract_company_name, is_noise_company
+from classify import classify_status, company_key, extract_company_name, extract_proper_noun_phrases, is_noise_company
 from config import ATS_DOMAINS
 
 
@@ -93,6 +93,11 @@ class TestCompanyFiltering(unittest.TestCase):
     def test_company_key_normalizes_variants(self):
         self.assertEqual(company_key("Northeastern Online"), "northeastern")
         self.assertEqual(company_key("Acme Robotics, Inc."), "acme robotics")
+
+    def test_extracts_proper_noun_phrases(self):
+        phrases = extract_proper_noun_phrases("Jack and Jill Recruiting forwarded your PlayStation Global update")
+        self.assertIn("Jack and Jill", phrases)
+        self.assertIn("PlayStation Global", phrases)
 
 
 if __name__ == "__main__":

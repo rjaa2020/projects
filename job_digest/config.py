@@ -76,6 +76,24 @@ NOISE_COMPANY_PATTERNS: List[str] = [
     r"\b55[- ]?57\s+york\b",
 ]
 
+SOURCE_TAG_PATTERNS: Dict[str, List[str]] = {
+    "Greenhouse": [r"greenhouse", r"greenhouse-mail\.io", r"greenhouse-jobs\.com"],
+    "Lever": [r"lever", r"hire\.lever\.co"],
+    "Ashby": [r"ashby", r"ashbyhq\.com"],
+    "Workday": [r"workday", r"myworkday\.com"],
+    "iCIMS": [r"icims", r"icims\.com"],
+    "SmartRecruiters": [r"smartrecruiters", r"smartrecruiters\.com"],
+    "Jobvite": [r"jobvite", r"jobvite\.com"],
+    "Taleo": [r"taleo", r"taleo\.net"],
+    "SuccessFactors": [r"successfactors", r"successfactors\.com"],
+    "Weekday": [r"weekday", r"weekdayhire\.com", r"weekday\.tools"],
+    "Paraform": [r"paraform", r"paraform\.com"],
+    "Indeed": [r"indeed"],
+    "Zoom": [r"zoom"],
+    "Northeastern": [r"northeastern"],
+    "Jack and Jill": [r"jack\s+and\s+jill", r"jack\s*&\s*jill"],
+}
+
 STATUS_PATTERNS: Dict[str, List[str]] = {
     "rejected": [
         r"not moving forward",
