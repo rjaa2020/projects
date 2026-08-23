@@ -99,6 +99,22 @@ class TestCompanyFiltering(unittest.TestCase):
         self.assertIn("Jack and Jill", phrases)
         self.assertIn("PlayStation Global", phrases)
 
+    def test_rejects_encoded_like_tokens(self):
+        blob = (
+            "8VLODqhALbx-D4jBKlUw23E2RYKItJxQoCsLKnJuZx6qALxlRHPEtPpduINH "
+            "jzosJpS4WR8qZUOEEeWrMVIF5FjqTaK om3QNstaYBdPpVOSCldVoy4pv7n-cMQ6wVwYje4YO "
+            "6lOBKXVPq2NOpAFP-i06rzxnYA0u7SI428tRjsf EaJfOYByapQxSKEd2GFu4q23BJviEFCBpApcnxtsUZ7SQPql2mUUhMLNeuF4Q1HFzMwCUwLNnverqX6Kdh"
+        )
+        phrases = extract_proper_noun_phrases(f"Update from {blob} regarding your application")
+        # should not return the encoded-like blob as a proper-noun phrase
+        self.assertEqual(phrases, [])
+
+    def test_rejects_url_and_encoded_fragments(self):
+        s = "2FCtc 2FI82Fd31rwt042Fintro30AM PDT Jordan Lowe30AM PDT Jordan LoweHi Rahul Your Google3A 2F3A 2F 2Fwww.samba.tv 2Fcareers&sa D&source"
+        phrases = extract_proper_noun_phrases(f"Update from {s} about your application")
+        # none of those fragments should be treated as proper noun tags
+        self.assertEqual(phrases, [])
+
 
 if __name__ == "__main__":
     unittest.main()

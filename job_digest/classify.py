@@ -7,6 +7,9 @@ from email.utils import parseaddr
 from typing import Iterable, List, Optional
 
 from config import NOISE_COMPANY_PATTERNS, SOURCE_TAG_PATTERNS, STATUS_PATTERNS
+from nlp_utils import select_nlp_model, load_spacy_model
+from config import TAG_MAX_DIGIT_FRACTION, TAG_MIN_LEN_DIGIT_CHECK, TAG_ENCODED_MIN_LEN, TAG_ENCODED_ENTROPY_THRESHOLD, TAG_ENCODED_MIN_VOWEL_FRACTION
+from math import log2
 
 STATUS_ORDER: List[str] = ["rejected", "interview", "action", "submitted"]
 
@@ -45,6 +48,11 @@ PROPER_NOUN_STOPWORDS = {
 }
 
 PROPER_NOUN_TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9'’&.-]*")
+UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)
+LONG_HEX_RE = re.compile(r"^[0-9A-Fa-f]{6,}$")
+BASE64_LIKE_RE = re.compile(r"^(?=.*[+/=])[A-Za-z0-9+/]{8,}={0,2}$")
+HEX_PAIR_SEQ_RE = re.compile(r"(?:[0-9A-Fa-f]{2}){3,}")
+URL_TOKEN_RE = re.compile(r"www\.|https?:|%[0-9A-Fa-f]{2}|&source|&sa|mailto:|://")
 
 SUBJECT_COMPANY_PATTERNS: List[re.Pattern[str]] = [
     re.compile(r"\bthank you for applying to\s+(.+?)(?:\s*[|:,-].*|$)", re.IGNORECASE),
@@ -115,7 +123,45 @@ def detect_source_tag(subject: str, from_header: str) -> str:
 
 def extract_proper_noun_phrases(text: str) -> List[str]:
     """Extract lightweight proper-noun candidates from free text."""
-    tokens = PROPER_NOUN_TOKEN_RE.findall(text or "")
+    # If a local spaCy model is available, prefer its NER for ORGANIZATION/PERSON
+    try:
+        model_name = select_nlp_model()
+        if model_name:
+            nlp = load_spacy_model(model_name)
+            if nlp is not None:
+                doc = nlp(text or "")
+                ents: List[str] = []
+                for ent in doc.ents:
+                    if ent.label_ in {"ORG", "PERSON", "GPE"}:
+                        ents.append(ent.text.strip())
+                if ents:
+                    return _dedupe_preserve_order(ents)
+    except Exception:
+        # silently ignore model-load failures and fallback to heuristic
+        pass
+
+    raw = text or ""
+    tokens = PROPER_NOUN_TOKEN_RE.findall(raw)
+
+    # Quick noisy-text heuristics: if the text contains several short hex fragments
+    # (common when a URL or encoded payload was pasted), bail out entirely.
+    short_hex_tokens = re.findall(r"\b[0-9A-Fa-f]{1,2}\b", raw)
+    if len(short_hex_tokens) >= 3:
+        return []
+    # common percent-encoding fragments like '2F' repeated, or pasted URLs
+    if raw.count('2F') >= 2 or 'www.' in raw.lower():
+        return []
+
+    # Quick noisy-token ratio check: if the text looks dominated by encoded/url fragments,
+    # skip extraction entirely to avoid spurious tags.
+    noisy = 0
+    for t in tokens:
+        if UUID_RE.match(t) or LONG_HEX_RE.match(t) or BASE64_LIKE_RE.match(t) or HEX_PAIR_SEQ_RE.search(t) or URL_TOKEN_RE.search(t):
+            noisy += 1
+        elif any(ch.isdigit() for ch in t) and sum(1 for c in t if c.isalpha()) < 2:
+            noisy += 1
+    if tokens and (noisy / len(tokens)) > 0.35:
+        return []
     phrases: List[str] = []
     current: List[str] = []
 
@@ -171,7 +217,49 @@ def _looks_like_proper_noun_word(token: str) -> bool:
     if not token:
         return False
 
+    # Reject tokens with obvious appended time markers or salutations
+    if re.search(r"\d+(?::\d{2})?\s?(?:AM|PM)$", token, flags=re.IGNORECASE):
+        return False
+    if token.lower().endswith("hi") and any(c.isalpha() for c in token[:-2]):
+        return False
+
     cleaned = token.strip("'’.-")
+    # strip trailing timezone / time artifacts like '30AM', 'PDT', etc.
+    cleaned = re.sub(r"(?i)(?:\b(?:PDT|EDT|EST|CST|UTC|GMT)\b)|(?:\d{1,2}(?::\d{2})?\s?(?:AM|PM))$", "", cleaned).strip()
+    # Reject encoded ids, long hex/base64, UUIDs, or tokens with lots of digits/symbols
+    if not cleaned:
+        return False
+    lowered = cleaned.lower()
+    # tokens with special characters often indicate encoded fragments or ids
+    if re.search(r"[<>@/\\=]", token):
+        return False
+    if UUID_RE.match(cleaned) or LONG_HEX_RE.match(cleaned) or BASE64_LIKE_RE.match(cleaned):
+        return False
+    if HEX_PAIR_SEQ_RE.search(cleaned) or URL_TOKEN_RE.search(cleaned):
+        return False
+    # reject tokens with small trailing hex-like fragments appended to words (eg 'Google3A')
+    if re.search(r"[A-Za-z]+[0-9A-Fa-f]{1,2}$", cleaned):
+        return False
+    # too many digits -> likely an id; skip this check for very short tokens
+    if len(cleaned) > TAG_MIN_LEN_DIGIT_CHECK:
+        digit_frac = sum(1 for c in cleaned if c.isdigit()) / max(1, len(cleaned))
+        if digit_frac > TAG_MAX_DIGIT_FRACTION:
+            return False
+
+    # low alphabetic fraction indicates non-word token
+    alpha_frac = sum(1 for c in cleaned if c.isalpha()) / max(1, len(cleaned))
+    if len(cleaned) > 2 and alpha_frac < 0.4:
+        return False
+
+    # For short tokens, require some vowels to avoid odd alphanumeric fragments
+    if len(cleaned) <= 6:
+        vowel_frac = sum(1 for c in cleaned.lower() if c in "aeiou") / max(1, len(cleaned))
+        if vowel_frac < 0.15 and any(ch.isdigit() for ch in cleaned):
+            return False
+
+    # Detect long encoded-like tokens using entropy and vowel fraction heuristics
+    if _is_likely_encoded(cleaned):
+        return False
     if not cleaned:
         return False
 
@@ -210,6 +298,32 @@ def _normalize_proper_noun_phrase(tokens: List[str]) -> str:
         return ""
 
     return phrase
+
+
+def _is_likely_encoded(token: str) -> bool:
+    """Return True if token looks like an encoded id or random blob.
+
+    Heuristics: token length >= TAG_ENCODED_MIN_LEN AND (high entropy OR low vowel fraction).
+    """
+    t = token
+    if len(t) < TAG_ENCODED_MIN_LEN:
+        return False
+
+    # entropy
+    counts: dict[str, int] = {}
+    for ch in t:
+        counts[ch] = counts.get(ch, 0) + 1
+    probs = [v / len(t) for v in counts.values()]
+    entropy = -sum(p * log2(p) for p in probs if p > 0)
+
+    # vowel fraction
+    vowels = sum(1 for c in t.lower() if c in "aeiou")
+    vowel_frac = vowels / max(1, len(t))
+
+    if entropy >= TAG_ENCODED_ENTROPY_THRESHOLD or vowel_frac <= TAG_ENCODED_MIN_VOWEL_FRACTION:
+        return True
+
+    return False
 
 
 def _dedupe_preserve_order(values: List[str]) -> List[str]:

@@ -30,6 +30,14 @@ from typing import Dict, List
 from googleapiclient.errors import HttpError
 
 from classify import classify_status, company_key, extract_company_name, extract_proper_noun_phrases, is_noise_company, tag_key
+from config import ENABLE_FUZZY_MATCHING, FUZZY_SIMILARITY_THRESHOLD
+try:
+    if ENABLE_FUZZY_MATCHING:
+        from rapidfuzz import fuzz
+    else:
+        fuzz = None
+except Exception:
+    fuzz = None
 from config import ATS_DOMAINS
 from gmail_client import (
     JobDigestError,
@@ -41,6 +49,7 @@ from gmail_client import (
     search_thread_ids,
 )
 from render import format_portable_date, render_digest_html
+from nlp_utils import runtime_info
 
 LOG_FILENAME = "job_digest.log"
 LOG_MAX_BYTES = 3 * 1024 * 1024
@@ -155,7 +164,14 @@ def build_entries(service, days: int, logger: logging.Logger | None = None) -> L
 
 
 def _assign_proper_noun_tags(entries: List[Dict[str, object]], max_tags: int = MAX_TAGS_TOTAL) -> None:
-    tag_counts: Counter[str] = Counter()
+    """Assign tags using IDF-style ranking and optional fuzzy-merging.
+
+    Produces `tag_keys` and `tag_labels` on each entry (same shape as before). Uses
+    `tag_key` as the canonical slug; client-side matching splits the slug on `-` for
+    token-based Jaccard comparisons.
+    """
+    # Collect candidates and document frequency (df)
+    tag_df: Counter[str] = Counter()
     tag_labels: Dict[str, str] = {}
     entry_candidates: List[List[tuple[str, str]]] = []
 
@@ -171,27 +187,65 @@ def _assign_proper_noun_tags(entries: List[Dict[str, object]], max_tags: int = M
 
             seen.add(normalized)
             candidates.append((normalized, phrase))
-            tag_counts[normalized] += 1
+            tag_df[normalized] += 1
             tag_labels.setdefault(normalized, phrase)
 
         entry_candidates.append(candidates)
 
-    ranked_keys = [key for key, count in tag_counts.most_common() if count >= COMMON_TAG_MIN_COUNT]
-    if not ranked_keys:
-        ranked_keys = [key for key, _ in tag_counts.most_common(max_tags)]
+    total_docs = max(1, len(entries))
 
-    allowed = set(ranked_keys[:max_tags])
+    # Compute a simple IDF score: log((1 + N) / (1 + df)) + 1
+    from math import log
 
+    tag_idf: Dict[str, float] = {}
+    for key, df in tag_df.items():
+        tag_idf[key] = log((1.0 + total_docs) / (1.0 + df)) + 1.0
+
+    # Optionally merge similar tags using rapidfuzz to improve grouping (enabled by config)
+    canonical_map: Dict[str, str] = {}
+    keys_sorted = sorted(tag_idf.keys(), key=lambda k: (-tag_idf[k], tag_labels.get(k, k)))
+
+    for key in keys_sorted:
+        if key in canonical_map:
+            continue
+        canonical_map[key] = key
+        if fuzz:
+            for other in list(tag_idf.keys()):
+                if other == key or other in canonical_map:
+                    continue
+                try:
+                    score = fuzz.token_sort_ratio(key.replace('-', ' '), other.replace('-', ' '))
+                except Exception:
+                    score = 0
+                if score >= FUZZY_SIMILARITY_THRESHOLD:
+                    canonical_map[other] = key
+
+    # Recompute df/idf aggregated to canonical keys
+    canonical_df: Counter[str] = Counter()
+    for original, df in tag_df.items():
+        canon = canonical_map.get(original, original)
+        canonical_df[canon] += df
+
+    canonical_idf: Dict[str, float] = {}
+    for key, df in canonical_df.items():
+        canonical_idf[key] = log((1.0 + total_docs) / (1.0 + df)) + 1.0
+
+    # Rank canonical tags by IDF (rarer = higher score) and pick top max_tags
+    ranked = sorted(canonical_idf.items(), key=lambda item: (-item[1], tag_labels.get(item[0], item[0])))
+    allowed = [k for k, _ in ranked][:max_tags]
+    allowed_set = set(allowed)
+
+    # Assign tags per entry using canonical mapping
     for entry, candidates in zip(entries, entry_candidates):
         keys: List[str] = []
         labels: List[str] = []
 
         for normalized, phrase in candidates:
-            if normalized not in allowed or normalized in keys:
+            canon = canonical_map.get(normalized, normalized)
+            if canon not in allowed_set or canon in keys:
                 continue
-
-            keys.append(normalized)
-            labels.append(tag_labels.get(normalized, phrase))
+            keys.append(canon)
+            labels.append(tag_labels.get(canon, phrase))
 
         if not keys:
             fallback_key = str(entry.get("company_key", "")).strip()
@@ -272,7 +326,8 @@ def run(logger: logging.Logger | None = None) -> int:
     start_date = end_date - timedelta(days=args.days)
     generated_at = datetime.now(timezone.utc)
 
-    html = render_digest_html(entries, counts, start_date, end_date, generated_at)
+    runtime = runtime_info()
+    html = render_digest_html(entries, counts, start_date, end_date, generated_at, runtime)
     digest_path.write_text(html, encoding="utf-8")
     print(f"Saved digest to {digest_path}")
 

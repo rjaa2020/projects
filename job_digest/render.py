@@ -1,4 +1,9 @@
-"""HTML rendering for the job application digest."""
+"""HTML rendering for the job application digest.
+
+This implementation builds the page in discrete parts. The embedded JavaScript
+is included as a plain Python string (not an f-string) so its braces do not
+need escaping.
+"""
 
 from __future__ import annotations
 
@@ -10,7 +15,6 @@ from config import STATUS_COLORS, STATUS_LABELS
 
 
 def format_portable_date(dt: datetime) -> str:
-    """Render a day without platform-specific strftime modifiers."""
     months = [
         "Jan",
         "Feb",
@@ -40,8 +44,8 @@ def render_digest_html(
     range_start: date,
     range_end: date,
     generated_at: datetime,
+    runtime_info: Dict[str, object] | None = None,
 ) -> str:
-    """Render a filterable dashboard with proper-noun tags and status filters."""
     status_index = _collect_status_index(counts)
     tag_index = _collect_tag_index(entries)
 
@@ -55,17 +59,39 @@ def render_digest_html(
     )
 
     if entries:
-        cards_html = "".join(
-            _render_company_section(company, company_entries) for company, company_entries in _group_entries(entries)
-        )
+        cards_html = "".join(_render_company_section(company, company_entries) for company, company_entries in _group_entries(entries))
     else:
         cards_html = (
-            '<tr><td style="padding:20px;border:1px solid #E5E7EB;border-radius:10px;" '
-            'bgcolor="#FFFFFF">No matching application activity found in this window.</td></tr>'
+            '<tr><td style="padding:20px;border:1px solid #E5E7EB;border-radius:10px;' 
+            '" bgcolor="#FFFFFF">No matching application activity found in this window.</td></tr>'
         )
 
     generated_label = format_portable_date(generated_at.astimezone(timezone.utc))
-    return f"""<!DOCTYPE html>
+    # Top-line runtime/model summary
+    gen_time_label = generated_at.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    top_model = "(none)"
+    if runtime_info:
+      top_model = runtime_info.get("selected_model") or "(none)"
+    runtime_label = ""
+    if runtime_info:
+        model = runtime_info.get("selected_model") or "(none)"
+        plat = runtime_info.get("platform", "")
+        machine = runtime_info.get("machine", "")
+        cpus = runtime_info.get("cpu_count")
+        mem = runtime_info.get("total_mem_gb")
+        gpu = runtime_info.get("has_gpu")
+        parts = [f"Model: {model}"]
+        if plat or machine:
+            parts.append(f"Platform: {plat} {machine}".strip())
+        if cpus:
+            parts.append(f"CPUs: {cpus}")
+        if mem:
+            parts.append(f"Mem: {round(mem,1)} GB")
+        parts.append(f"GPU: {'Yes' if gpu else 'No'}")
+        runtime_label = " · " + " | ".join(parts)
+
+    # Header and body up to the interactive script
+    header = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -151,7 +177,8 @@ def render_digest_html(
     <div class="app-frame">
       <div style="padding:24px 24px 14px 24px;background:linear-gradient(135deg,#0F172A,#1D4ED8);color:#FFFFFF;">
         <h1 style="margin:0;font-size:26px;line-height:1.2;">Job Application Digest</h1>
-        <p style="margin:10px 0 0 0;font-size:14px;opacity:0.95;">Coverage: {escape(format_date_range(range_start, range_end))}</p>
+        <p style="margin:8px 0 0 0;font-size:14px;opacity:0.95;">Coverage: {escape(format_date_range(range_start, range_end))}</p>
+        <p style="margin:6px 0 0 0;font-size:12px;opacity:0.9;">Model: {escape(str(top_model))} · Generated: {escape(gen_time_label)}</p>
       </div>
 
       <div class="filter-bar" aria-label="Filters">
@@ -182,60 +209,92 @@ def render_digest_html(
       </div>
 
       <div style="padding:14px 24px 20px 24px;border-top:1px solid #E5E7EB;color:#4B5563;font-size:12px;line-height:1.5;">
-        Generated on {escape(generated_label)} (UTC). Click a status or tag to filter the dashboard.
+        Generated on {escape(generated_label)} (UTC). Click a status or tag to filter the dashboard.{escape(runtime_label)}
       </div>
     </div>
   </div>
+"""
 
+    # Interactive JavaScript (plain raw string so backslashes are preserved)
+    js = r"""
   <script>
-    (function () {{
+    (function () {
       const filterButtons = Array.from(document.querySelectorAll('[data-filter-key]'));
       const companyCards = Array.from(document.querySelectorAll('[data-company-card]'));
-      const activeFilters = {{ status: 'all', tag: 'all' }};
+      const activeFilters = { status: 'all', tag: 'all' };
 
-      function parseTags(value) {{
-        return (value || '').split(/\\s+/).filter(Boolean);
-      }}
+      function parseTags(value) {
+        return (value || '').split(/\s+/).filter(Boolean);
+      }
 
-      function setActiveFilter(group, filterKey) {{
+      function tokenSetFromTagKey(tagKey) {
+        return (tagKey || '').split(/[-_]+/).filter(Boolean).map(t => t.toLowerCase());
+      }
+
+      function jaccard(a, b) {
+        const setA = new Set(a);
+        const setB = new Set(b);
+        const inter = Array.from(setA).filter(x => setB.has(x)).length;
+        const union = new Set([...setA, ...setB]).size;
+        return union === 0 ? 0 : inter / union;
+      }
+
+      function setActiveFilter(group, filterKey) {
         activeFilters[group] = filterKey;
 
-        filterButtons.forEach((button) => {{
-          if (button.dataset.filterGroup === group) {{
+        filterButtons.forEach((button) => {
+          if (button.dataset.filterGroup === group) {
             button.classList.toggle('active', button.dataset.filterKey === filterKey);
-          }}
-        }});
+          }
+        });
 
-        companyCards.forEach((card) => {{
+        companyCards.forEach((card) => {
           const entryRows = Array.from(card.querySelectorAll('[data-entry-row]'));
           let visibleRowCount = 0;
 
-          entryRows.forEach((row) => {{
+          entryRows.forEach((row) => {
             const tags = parseTags(row.dataset.tags);
             const statusMatches = activeFilters.status === 'all' || row.dataset.statusKey === activeFilters.status;
-            const tagMatches = activeFilters.tag === 'all' || tags.includes(activeFilters.tag);
+            let tagMatches = false;
+
+            if (activeFilters.tag === 'all') {
+              tagMatches = true;
+            } else {
+              const clickedTokens = tokenSetFromTagKey(activeFilters.tag);
+              for (const t of tags) {
+                if (!t) continue;
+                if (t === activeFilters.tag) { tagMatches = true; break; }
+                const tTokens = tokenSetFromTagKey(t);
+                if (clickedTokens.length === 1 && tTokens.includes(clickedTokens[0])) { tagMatches = true; break; }
+                if (tTokens.length === 1 && clickedTokens.some(ct => tTokens.includes(ct))) { tagMatches = true; break; }
+                if (jaccard(clickedTokens, tTokens) >= 0.75) { tagMatches = true; break; }
+              }
+            }
+
             const matches = statusMatches && tagMatches;
             row.classList.toggle('is-hidden', !matches);
-            if (matches) {{
+            if (matches) {
               visibleRowCount += 1;
-            }}
-          }});
+            }
+          });
 
           card.classList.toggle('is-hidden', visibleRowCount === 0);
-        }});
-      }}
+        });
+      }
 
-      filterButtons.forEach((button) => {{
+      filterButtons.forEach((button) => {
         button.addEventListener('click', () => setActiveFilter(button.dataset.filterGroup || 'tag', button.dataset.filterKey || 'all'));
-      }});
+      });
 
       setActiveFilter('status', 'all');
       setActiveFilter('tag', 'all');
-    }})();
+    })();
   </script>
 </body>
 </html>
 """
+
+    return header + js
 
 
 def _render_stat_cell(label: str, value: int, color: str) -> str:
@@ -257,8 +316,8 @@ def _collect_status_index(counts: Dict[str, int]) -> List[Tuple[str, str]]:
 
 
 def _entry_tag_pairs(entry: Dict[str, object]) -> List[Tuple[str, str]]:
-  keys, labels = _entry_tag_lists(entry)
-  return list(zip(keys, labels))
+    keys, labels = _entry_tag_lists(entry)
+    return list(zip(keys, labels))
 
 
 def _collect_tag_index(entries: List[Dict[str, object]]) -> List[Tuple[str, str]]:
@@ -266,7 +325,7 @@ def _collect_tag_index(entries: List[Dict[str, object]]) -> List[Tuple[str, str]
 
     for entry in entries:
         for key, label in _entry_tag_pairs(entry):
-            if key and label and key not in tag_map:
+            if key and label and str(label).strip() and key not in tag_map:
                 tag_map[key] = label
 
     return sorted(tag_map.items(), key=lambda item: item[1].lower())
@@ -341,7 +400,7 @@ def _collect_section_tags(entries: List[Dict[str, object]]) -> List[Tuple[str, s
 
     for entry in entries:
         for key, label in _entry_tag_pairs(entry):
-            if key and label:
+            if key and label and str(label).strip():
                 section_map.setdefault(key, label)
 
     return sorted(section_map.items(), key=lambda item: item[1].lower())
@@ -352,72 +411,28 @@ def _render_tag_chip(tag_key: str, tag_label: str) -> str:
 
 
 def _render_company_dates(first_date: object, last_date: object) -> str:
-    first = str(first_date or "")
-    last = str(last_date or "")
-    if not first and not last:
-        return ""
-    if first == last or not last:
-        return f" · {escape(first)}"
-    return f" · {escape(first)} to {escape(last)}"
+    if first_date == last_date:
+        return f" &middot; {escape(str(first_date))}"
+    return f" &middot; {escape(str(first_date))} – {escape(str(last_date))}"
 
 
 def _render_entry_row(entry: Dict[str, object]) -> str:
-    status = str(entry.get("status", "submitted"))
-    badge_color = STATUS_COLORS.get(status, "#027A48")
-    badge_label = STATUS_LABELS.get(status, "Submitted")
-
-    company = escape(str(entry.get("company", "Unknown Company")))
     date_label = escape(str(entry.get("date_label", "")))
-    subject = escape(str(entry.get("subject", "(No subject)")))
+    status = escape(str(entry.get("status", "submitted")))
+    subject = escape(str(entry.get("subject", "")))
     excerpt = escape(str(entry.get("excerpt", "")))
-    tag_keys, tag_labels = _entry_tag_lists(entry)
-    data_tags = " ".join(tag_keys)
-    inline_tags = "".join(_render_inline_tag_chip(tag_key, tag_label) for tag_key, tag_label in zip(tag_keys, tag_labels))
-
-    return f"""
-<tr class="entry-row" data-entry-row data-status-key="{escape(status)}" data-tags="{escape(data_tags)}">
-  <td style="padding:0;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;background-color:#FFFFFF;">
-      <tr>
-        <td style="padding:14px 16px 10px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="font-size:18px;font-weight:700;color:#111827;">{company}</td>
-              <td align="right" style="font-size:12px;color:#6B7280;">{date_label}</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:0 16px 8px 16px;">
-          <span style="display:inline-block;padding:4px 10px;border-radius:999px;background-color:{badge_color};color:#FFFFFF;font-size:12px;font-weight:700;">{badge_label}</span>
-          <span style="display:inline-block;margin-left:8px;vertical-align:middle;">{inline_tags}</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:0 16px 8px 16px;font-size:14px;color:#111827;font-weight:600;line-height:1.4;">{subject}</td>
-      </tr>
-      <tr>
-        <td style="padding:0 16px 16px 16px;font-size:13px;color:#4B5563;line-height:1.45;">{excerpt}</td>
-      </tr>
-    </table>
-  </td>
-</tr>
-"""
+    tags = " ".join(entry.get("tag_keys", []))
+    return (
+        f'<tr class="entry-row" data-entry-row data-status-key="{escape(status)}" data-tags="{escape(tags)}">'
+        f'<td style="padding:12px 12px;background:#FFFFFF;">'
+        f'<div style="font-size:13px;color:#6B7280;">{date_label} &middot; {STATUS_LABELS.get(status, status)}</div>'
+        f'<div style="font-size:15px;font-weight:700;color:#111827;margin-top:6px;">{subject}</div>'
+        f'<div style="font-size:13px;color:#374151;margin-top:6px;">{excerpt}</div>'
+        "</td></tr>"
+    )
 
 
 def _entry_tag_lists(entry: Dict[str, object]) -> Tuple[List[str], List[str]]:
-    tag_keys = entry.get("tag_keys")
-    tag_labels = entry.get("tag_labels")
-
-    if isinstance(tag_keys, list) and isinstance(tag_labels, list) and len(tag_keys) == len(tag_labels):
-        keys = [str(item or "").strip() for item in tag_keys if str(item or "").strip()]
-        labels = [str(item or "").strip() for item in tag_labels if str(item or "").strip()]
-        if keys and labels and len(keys) == len(labels):
-            return keys, labels
-
-    return [], []
-
-
-def _render_inline_tag_chip(tag_key: str, tag_label: str) -> str:
-    return f'<button class="tag-chip" type="button" data-filter-group="tag" data-filter-key="{escape(tag_key)}">{escape(tag_label)}</button>'
+    keys = list(entry.get("tag_keys", [])) if entry.get("tag_keys") else []
+    labels = list(entry.get("tag_labels", [])) if entry.get("tag_labels") else []
+    return keys, labels

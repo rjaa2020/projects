@@ -145,3 +145,21 @@ STATUS_LABELS: Dict[str, str] = {
     "action": "Action Needed",
     "submitted": "Submitted",
 }
+
+# Fuzzy matching and tag similarity settings
+# When True, server-side tag merging will use `rapidfuzz` to cluster similar tags.
+ENABLE_FUZZY_MATCHING: bool = True
+# rapidfuzz token_sort_ratio threshold (0-100) for merging similar tag slugs
+FUZZY_SIMILARITY_THRESHOLD: int = 85
+
+# Tag token digit heuristics
+# Maximum fraction of digits in a token before rejecting it as an id-like token.
+TAG_MAX_DIGIT_FRACTION: float = 0.75
+# Tokens shorter than or equal to this length skip the digit-fraction check.
+TAG_MIN_LEN_DIGIT_CHECK: int = 3
+# Encoded-token detection: tokens longer than TAG_ENCODED_MIN_LEN with
+# high character entropy or very low vowel fraction are treated as encoded ids
+# and will be rejected as tags.
+TAG_ENCODED_MIN_LEN: int = 20
+TAG_ENCODED_ENTROPY_THRESHOLD: float = 3.8
+TAG_ENCODED_MIN_VOWEL_FRACTION: float = 0.12
