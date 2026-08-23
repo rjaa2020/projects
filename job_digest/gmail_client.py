@@ -7,10 +7,9 @@ import html
 import re
 from dataclasses import dataclass
 from datetime import date, timedelta
-from email.mime.text import MIMEText
 from email.utils import parseaddr
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
@@ -183,28 +182,6 @@ def get_plaintext_body(service: Resource, message_id: str) -> str:
         return _strip_html(html_body)
 
     return ""
-
-
-def get_authenticated_email(service: Resource) -> str:
-    """Get the authenticated mailbox email address."""
-    profile = service.users().getProfile(userId="me").execute()
-    email = profile.get("emailAddress")
-    if not email:
-        raise JobDigestError("Unable to determine authenticated Gmail address.")
-    return email
-
-
-def send_digest_email(service: Resource, to_email: str, subject: str, html_content: str) -> None:
-    """Send an HTML email with the digest using Gmail API."""
-    from_email = get_authenticated_email(service)
-
-    message = MIMEText(html_content, "html", "utf-8")
-    message["To"] = to_email
-    message["From"] = from_email
-    message["Subject"] = subject
-
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")
-    service.users().messages().send(userId="me", body={"raw": raw}).execute()
 
 
 def _headers_to_dict(headers: List[Dict[str, str]]) -> Dict[str, str]:

@@ -1,6 +1,6 @@
 import unittest
 
-from classify import classify_status, extract_company_name
+from classify import classify_status, company_key, extract_company_name, is_noise_company
 from config import ATS_DOMAINS
 
 
@@ -80,6 +80,19 @@ class TestCompanyExtraction(unittest.TestCase):
         from_header = "Stark Industries via Greenhouse <no-reply@greenhouse-mail.io>"
         result = extract_company_name(subject, from_header, ATS_DOMAINS)
         self.assertEqual(result, "Stark Industries")
+
+
+class TestCompanyFiltering(unittest.TestCase):
+    def test_filters_noise_companies(self):
+        self.assertTrue(is_noise_company("Reddit", "Some update", "alerts@reddit.com"))
+        self.assertTrue(is_noise_company("Northeastern Online", "Interview confirmation", "jobs@northeastern.edu"))
+        self.assertTrue(is_noise_company("Zoom", "Meeting assets ready", "no-reply@zoom.us"))
+        self.assertTrue(is_noise_company("Indeed", "Application alert", "no-reply@indeed.com"))
+        self.assertTrue(is_noise_company("55-57 York", "Purchase update", "noreply@example.com"))
+
+    def test_company_key_normalizes_variants(self):
+        self.assertEqual(company_key("Northeastern Online"), "northeastern")
+        self.assertEqual(company_key("Acme Robotics, Inc."), "acme robotics")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from datetime import date
 from unittest.mock import Mock, patch
 
 import gmail_client
+from config import SCOPES
 from gmail_client import build_search_query, is_denylisted, search_thread_ids
 
 
@@ -20,6 +21,11 @@ class TestBuildSearchQuery(unittest.TestCase):
         self.assertIn('"application"', query)
         self.assertIn('-subject:"newsletter"', query)
         self.assertIn('-subject:"digest"', query)
+
+
+class TestScopes(unittest.TestCase):
+    def test_only_readonly_scope_is_requested(self):
+        self.assertEqual(SCOPES, ["https://www.googleapis.com/auth/gmail.readonly"])
 
 
 class TestDenylist(unittest.TestCase):

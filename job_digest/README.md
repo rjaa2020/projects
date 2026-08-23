@@ -1,54 +1,44 @@
 # Job Application Digest Generator
 
-Generate an HTML digest of recent job-application activity from Gmail and optionally email it.
+Generate an HTML digest of recent job-application activity from Gmail.
 
 ## What it does
 
 - Scans Gmail for job-application activity in a configurable lookback window.
 - Classifies each application thread using the latest message only.
 - Writes a self-contained `digest.html` file.
-- Optionally emails the digest via Gmail API.
+- Reads Gmail only; it does not send mail.
 
 ## Setup
 
-1. Create or select a project at https://console.cloud.google.com/
+1. Create or select a project at https://console.cloud.google.com/.
 2. Enable **Gmail API** in APIs & Services -> Library.
-3. Configure OAuth consent screen:
-   - User type: External
-   - Add your own Gmail address as a test user
-4. Create OAuth credentials:
-   - APIs & Services -> Credentials -> Create credentials -> OAuth client ID
-   - Application type: **Desktop app**
+3. Configure OAuth consent screen as **External** and add your Gmail address as a test user.
+4. Create OAuth credentials with application type **Desktop app**.
 5. Download the JSON and save it as `credentials.json` in this folder.
-6. Create a dedicated virtual environment in this folder:
+6. Create a virtual environment in this folder:
 
-```bash
-python3 -m venv .venv
+```powershell
+python -m venv .venv
 ```
 
 7. Activate it:
 
-macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
 Windows (PowerShell):
 
 ```powershell
-.venv\\Scripts\\Activate.ps1
+.venv\Scripts\Activate.ps1
 ```
 
 8. Install dependencies:
 
-```bash
+```powershell
 pip install --upgrade -r requirements.txt
 ```
 
 9. Run once to authorize:
 
-```bash
+```powershell
 python job_digest.py --days 30
 ```
 
@@ -56,41 +46,32 @@ The first run opens a browser for consent and creates `token.json` in this folde
 
 ## Usage
 
-```bash
-python job_digest.py [--days N] [--no-send] [--to EMAIL]
+```powershell
+python job_digest.py [--days N]
 ```
 
 - `--days N`: lookback window in days (default `30`)
-- `--no-send`: only save `digest.html`; do not send email
-- `--to EMAIL`: send to this recipient; default is authenticated account
 
-You can also run commands without activating by calling the venv interpreter directly:
-
-macOS/Linux:
-
-```bash
-./.venv/bin/python job_digest.py --days 30 --no-send
-```
-
-Windows:
+You can also run it without activating by calling the venv interpreter directly:
 
 ```powershell
-.venv\\Scripts\\python.exe job_digest.py --days 30 --no-send
+.venv\Scripts\python.exe job_digest.py --days 30
 ```
 
 ## Run unit tests
 
-```bash
+```powershell
 python -m unittest discover -s tests -v
 ```
 
 ## Notes
 
-- The tool reads Gmail data and sends one digest email; it does not modify labels or message read status.
 - Classification is keyword-based and best-effort. The digest includes message excerpt context for quick review.
+- Runtime logs are written to `job_digest.log` and trimmed to the last 3 MB.
 - If `credentials.json` is missing, the script exits with setup guidance.
 
 ## Output files
 
 - `digest.html`: generated digest output
+- `job_digest.log`: runtime log file, capped at the last 3 MB
 - `token.json`: cached OAuth token

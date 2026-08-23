@@ -6,7 +6,7 @@ import re
 from email.utils import parseaddr
 from typing import Iterable, List, Optional
 
-from config import STATUS_PATTERNS
+from config import NOISE_COMPANY_PATTERNS, STATUS_PATTERNS
 
 STATUS_ORDER: List[str] = ["rejected", "interview", "action", "submitted"]
 
@@ -52,6 +52,25 @@ def extract_company_name(subject: str, from_header: str, ats_domains: Iterable[s
         return _title_from_domain(sender_domain)
 
     return "Unknown Company"
+
+
+def is_noise_company(company: str, subject: str = "", from_header: str = "") -> bool:
+    """Detect noisy non-application sources that should be excluded from the digest."""
+    haystack = " ".join([company or "", subject or "", from_header or ""]).lower()
+
+    for pattern in NOISE_COMPANY_PATTERNS:
+        if re.search(pattern, haystack, flags=re.IGNORECASE):
+            return True
+
+    return False
+
+
+def company_key(company: str) -> str:
+    """Build a stable normalized key for grouping and timeline matching."""
+    value = (company or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    value = re.sub(r"\b(inc|llc|ltd|co|corp|corporation|company|jobs?|careers?|team|online)\b", "", value)
+    return re.sub(r"\s+", " ", value).strip()
 
 
 def _extract_company_from_subject(subject: str) -> Optional[str]:

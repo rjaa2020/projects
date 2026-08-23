@@ -1,5 +1,6 @@
 credentials.json
 token.json
 digest.html
+job_digest.log
 __pycache__/
 *.pyc

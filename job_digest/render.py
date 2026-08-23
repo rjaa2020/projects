@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from html import escape
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from config import STATUS_COLORS, STATUS_LABELS
 
@@ -52,11 +52,11 @@ def render_digest_html(
     )
 
     if entries:
-        rows_html = "".join(_render_entry_row(entry) for entry in entries)
+      rows_html = "".join(_render_company_section(company, company_entries) for company, company_entries in _group_entries(entries))
     else:
         rows_html = (
-            '<tr><td style="padding:20px;border:1px solid #E5E7EB;border-radius:10px;" '
-            'bgcolor="#FFFFFF">No matching application activity found in this window.</td></tr>'
+        '<tr><td style="padding:20px;border:1px solid #E5E7EB;border-radius:10px;" '
+        'bgcolor="#FFFFFF">No matching application activity found in this window.</td></tr>'
         )
 
     generated_label = format_portable_date(generated_at.astimezone(timezone.utc))
@@ -115,6 +115,70 @@ def _render_stat_cell(label: str, value: int, color: str) -> str:
         f'<div style="font-size:24px;font-weight:700;color:{escape(color)};margin:4px 0 8px 0;">{value}</div>'
         "</td>"
     )
+
+
+def _group_entries(entries: List[Dict[str, object]]) -> List[Tuple[str, List[Dict[str, object]]]]:
+    grouped: List[Tuple[str, List[Dict[str, object]]]] = []
+    current_key = None
+    current_entries: List[Dict[str, object]] = []
+
+    for entry in entries:
+        company_key = str(entry.get("company_key", ""))
+        if current_key is None or company_key != current_key:
+            if current_entries:
+                grouped.append((str(current_entries[0].get("company", "Unknown Company")), current_entries))
+            current_key = company_key
+            current_entries = [entry]
+        else:
+            current_entries.append(entry)
+
+    if current_entries:
+        grouped.append((str(current_entries[0].get("company", "Unknown Company")), current_entries))
+
+    return grouped
+
+
+def _render_company_section(company: str, entries: List[Dict[str, object]]) -> str:
+    first_date = entries[0].get("date_label", "")
+    last_date = entries[-1].get("date_label", "")
+
+    section_rows = "".join(_render_entry_row(entry) for entry in entries)
+
+    return f"""
+<tr>
+  <td style="padding:0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #D1D5DB;border-radius:12px;overflow:hidden;background-color:#FFFFFF;">
+      <tr>
+        <td style="padding:14px 16px 12px 16px;background-color:#F9FAFB;border-bottom:1px solid #E5E7EB;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:18px;font-weight:700;color:#111827;">{escape(company)}</td>
+              <td align="right" style="font-size:12px;color:#6B7280;">{escape(str(len(entries)))} updates{_render_company_dates(first_date, last_date)}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:12px 12px 4px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0 10px;">
+            {section_rows}
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+"""
+
+
+def _render_company_dates(first_date: object, last_date: object) -> str:
+    first = str(first_date or "")
+    last = str(last_date or "")
+    if not first and not last:
+        return ""
+    if first == last or not last:
+        return f" · {escape(first)}"
+    return f" · {escape(first)} to {escape(last)}"
 
 
 def _render_entry_row(entry: Dict[str, object]) -> str:

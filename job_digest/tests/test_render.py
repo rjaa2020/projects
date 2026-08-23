@@ -13,6 +13,7 @@ class TestRender(unittest.TestCase):
         entries = [
             {
                 "company": "A & B Co",
+                "company_key": "a b",
                 "status": "action",
                 "subject": "Please complete <assessment>",
                 "excerpt": "Use this link & confirm.",
@@ -33,6 +34,7 @@ class TestRender(unittest.TestCase):
         self.assertIn("Coverage: Jul 22, 2026 to Aug 21, 2026", html)
         self.assertIn("Action Needed", html)
         self.assertIn("A &amp; B Co", html)
+        self.assertIn("1 updates", html)
         self.assertIn("Please complete &lt;assessment&gt;", html)
         self.assertIn("Use this link &amp; confirm.", html)
         self.assertIn('role="presentation"', html)

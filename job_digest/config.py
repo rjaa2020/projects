@@ -6,7 +6,6 @@ from typing import Dict, List
 
 SCOPES: List[str] = [
     "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 ATS_DOMAINS: List[str] = [
@@ -51,6 +50,10 @@ DENYLIST_SENDER_PATTERNS: List[str] = [
     r"leetcode",
     r"simplify\.jobs",
     r"wayup\.com",
+    r"reddit",
+    r"indeed",
+    r"zoom\.us",
+    r"northeastern\.edu",
     r"substack",
     r"admissions",
     r"university",
@@ -63,6 +66,14 @@ DENYLIST_SUBJECT_PATTERNS: List[str] = [
     r"job matches",
     r"new jobs?",
     r"admissions",
+]
+
+NOISE_COMPANY_PATTERNS: List[str] = [
+    r"\breddit\b",
+    r"\bindeed\b",
+    r"\bzoom\b",
+    r"\bnortheastern\b",
+    r"\b55[- ]?57\s+york\b",
 ]
 
 STATUS_PATTERNS: Dict[str, List[str]] = {
