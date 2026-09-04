@@ -1,0 +1,15 @@
+{
+  "name": "woodshed-web",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Node.js web GUI for Woodshed seventh-chord trainer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "express-session": "^1.18.1"
+  }
+}

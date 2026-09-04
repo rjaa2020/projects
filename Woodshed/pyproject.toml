@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "woodshed-note-trainer"
+version = "3.2.0"
+description = "CLI and module for practicing seventh-chord note naming"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Rahul" }
+]
+keywords = ["jazz", "music-theory", "ear-training", "education"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Intended Audience :: Education",
+  "Topic :: Education",
+]
+
+[project.scripts]
+woodshed = "woodshed.cli:main"
+woodshed-api = "woodshed.api:main"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+]
+web = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["woodshed*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
