@@ -4,44 +4,34 @@ This repository is a personal workspace containing several experiments and proje
 
 ## Workspace Contents
 
-- `Woodshed/` — active project: jazz seventh-chord trainer (Python engine + API + Node web GUI)
-- `job_digest/` — job-application email digest and classification project
-- `carCosts/` — Selenium, BeautifulSoup, and pandas scripts for collecting vehicle cost-to-own data from Edmunds
-- `ChordProgressions/` — browser-based music prototype that displays note frequencies and plays tones with the Web Audio API
-- `blackjack.ipynb` — blackjack strategy exploration and simulation notebook
-- `Hexxed_Neuronav_Notebook.ipynb` — reinforcement-learning and NeuroNav experimentation notebook
-- `multiclass_obesity_prediction.ipynb` — exploratory machine-learning notebook for multiclass obesity prediction
-- `MedleyVox RNN Singer Recognition Project/` — RNN-based singer-recognition and singing-voice analysis project, including notebooks, reports, presentation materials, and figures
+Projects are listed in reverse chronological order by last-modified month.
 
-## Other Projects
+- `Woodshed/` — active project: jazz seventh-chord trainer (Python engine + API + Node web GUI) (last modified: March 2026)
+- `ChordProgressions/` — browser-based music prototype that displays note frequencies and plays tones with the Web Audio API (last modified: December 2025)
+- `carCosts/` — Selenium, BeautifulSoup, and pandas scripts for collecting vehicle cost-to-own data from Edmunds (last modified: August 2024)
+- `Hexxed_Neuronav_Notebook.ipynb` — reinforcement-learning and NeuroNav experimentation notebook (last modified: April 2024)
+- `blackjack.ipynb` — blackjack strategy exploration and simulation notebook (last modified: March 2024)
+- `multiclass_obesity_prediction.ipynb` — exploratory machine-learning notebook for multiclass obesity prediction (last modified: March 2024)
+- `MedleyVox RNN Singer Recognition Project/` — RNN-based singer-recognition and singing-voice analysis project, including notebooks, reports, presentation materials, and figures (last modified: March 2024)
 
-### Job Digest
+## Other Projects (Newest to Oldest)
 
-The `job_digest/` project turns job-application email into a structured digest. Its tested classification and extraction logic includes:
-
-- Classifying messages as rejected, interview, action required, or submitted
-- Extracting company names from application and ATS email formats
-- Normalizing company-name variants and filtering noise senders
-- Detecting proper-noun company phrases while rejecting encoded or URL-like text
-
-The folder also contains the generated `digest.html`, Gmail authentication files, logs, and classification tests.
-
-### Car Cost Calculator
-
-The `carCosts/` scripts automate Edmunds True Cost to Own lookups for a list of vehicles loaded from Excel. They use Selenium to select the vehicle and ZIP code, BeautifulSoup and pandas to parse pricing and ownership-cost tables, and can write consolidated results back to Excel.
-
-### Chord Progressions
+### Chord Progressions (last modified: December 2025)
 
 The `ChordProgressions/` prototype demonstrates browser-based note playback. It calculates note frequencies from note names and octaves, displays note information, and plays generated sine-wave tones through the Web Audio API.
 
+### Car Cost Calculator (last modified: August 2024)
+
+The `carCosts/` scripts automate Edmunds True Cost to Own lookups for a list of vehicles loaded from Excel. They use Selenium to select the vehicle and ZIP code, BeautifulSoup and pandas to parse pricing and ownership-cost tables, and can write consolidated results back to Excel.
+
 ### Research Notebooks
 
-- `blackjack.ipynb` explores blackjack strategy and game outcomes.
-- `Hexxed_Neuronav_Notebook.ipynb` explores NeuroNav with reinforcement-learning experiments and visualizations.
-- `multiclass_obesity_prediction.ipynb` explores data preparation, visualization, and multiclass obesity prediction.
-- `MedleyVox RNN Singer Recognition Project/` contains two ENGR208 final-project notebooks comparing singing-voice approaches, including an RNN-only approach, along with the written report, presentation, dataset documentation, and model figures.
+- `Hexxed_Neuronav_Notebook.ipynb` explores NeuroNav with reinforcement-learning experiments and visualizations (last modified: April 2024).
+- `blackjack.ipynb` explores blackjack strategy and game outcomes (last modified: March 2024).
+- `multiclass_obesity_prediction.ipynb` explores data preparation, visualization, and multiclass obesity prediction (last modified: March 2024).
+- `MedleyVox RNN Singer Recognition Project/` contains two ENGR208 final-project notebooks comparing singing-voice approaches, including an RNN-only approach, along with the written report, presentation, dataset documentation, and model figures (last modified: March 2024).
 
-## Active Project: Woodshed
+## Active Project: Woodshed (last modified: March 2026)
 
 Woodshed is structured with a single Python source of truth for quiz logic:
 
