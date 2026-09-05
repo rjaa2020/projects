@@ -2,7 +2,7 @@ name: Deploy Portfolio
 
 on:
   push:
-    branches: [main]
+    branches: [main, portfolio-site]
     paths:
       - 'portfolio/**'
       - '.github/workflows/deploy-portfolio.yml'
@@ -20,21 +20,49 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: portfolio
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (prod)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-checkout
+
+      - name: Checkout portfolio-site (dev)
+        uses: actions/checkout@v4
+        with:
+          ref: portfolio-site
+          path: dev-checkout
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: portfolio/package-lock.json
-      - run: npm install
-      - run: npm run build
+
+      - name: Build prod (main)
+        if: hashFiles('main-checkout/portfolio/package.json') != ''
+        working-directory: main-checkout/portfolio
+        run: |
+          npm install
+          npm run build
+
+      - name: Build dev (portfolio-site)
+        working-directory: dev-checkout/portfolio
+        env:
+          SITE_BASE: /projects/dev
+        run: |
+          npm install
+          npm run build
+
+      - name: Assemble combined site (prod at root, dev at /dev)
+        run: |
+          mkdir -p site/dev
+          if [ -d main-checkout/portfolio/dist ]; then
+            cp -r main-checkout/portfolio/dist/. site/
+          fi
+          cp -r dev-checkout/portfolio/dist/. site/dev/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: portfolio/dist
+          path: site
 
   deploy:
     needs: build
