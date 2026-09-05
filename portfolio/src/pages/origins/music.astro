@@ -1,0 +1,32 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Music — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Tenor Saxophonist &amp; Bandleader</h1>
+    <p class="page-lede pull-quote" style="font-size:18px;">The most creative solutions often emerge from working skillfully within constraints, not around them.</p>
+    <section>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Reading Days</div></div>
+        <p class="project-desc">Bandleader for this jazz quintet, merging artistic direction with the logistical management of running a band — bookings, rehearsals, and keeping five people's schedules aligned.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Seattle JazzED</div></div>
+        <p class="project-desc">"Jazz Ambassador," mentoring middle-school students and leading daily sectionals to build technical musicianship — my first experience leading and teaching musicians rather than just playing alongside them.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Bellevue High School Jazz Ensemble I &amp; Wind Ensemble</div></div>
+        <p class="project-desc">Lead tenor saxophonist and section leader across both ensembles, managing rehearsal schedules and driving unity across the group.</p>
+      </div>
+      <p class="blurb" style="margin-top:20px;">
+        I keep coming back to the same idea in both jazz and in my technical work: real creativity shows
+        up inside constraints — a chord structure, a data schema, a client's actual budget — not in
+        ignoring them. Years of improvising within a set of rules is probably why I default to that way of
+        thinking everywhere else.
+      </p>
+      <div class="stub-note">Have more specifics — a recording, a venue, how long you've led Reading Days? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

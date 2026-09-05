@@ -1,0 +1,26 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Museum of Flight — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Museum of Flight — Museum Apprentice Program</h1>
+    <p class="page-lede">Four-year apprenticeship</p>
+    <section>
+      <p class="blurb">
+        Over four years in the Museum Apprentice Program, I designed models and taught aerospace concepts
+        to elementary school students. It was my first real exposure to a problem I still work on today
+        in a very different form: taking something technically dense and finding the version of it that
+        actually lands for someone with zero background.
+      </p>
+      <p class="blurb">
+        The parallel to my current work is closer than it sounds — the same instinct that made me think
+        about how to explain lift and thrust to an eight-year-old is the one I use now when I'm turning a
+        data pipeline into a KPI an executive can act on without needing to understand the pipeline
+        itself.
+      </p>
+      <div class="stub-note">Have more specifics — a particular model you built, a lesson that landed especially well, exact dates? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

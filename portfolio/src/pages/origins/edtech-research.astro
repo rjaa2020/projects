@@ -1,0 +1,29 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="AP Research: EdTech Effectiveness — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">AP Research: EdTech Effectiveness</h1>
+    <p class="page-lede">High school research paper, "EdTech in High School: An Investigation into its Effectiveness Through Student Perspectives"</p>
+    <section>
+      <p class="blurb">
+        This was my first real research project, and it turned out to be the first of many times I'd end
+        up asking a version of the same question: does a technology actually help people learn, or does
+        it just feel more convenient? I studied whether school-issued laptops improved learning outcomes
+        and found a real split in student preference — roughly two-thirds preferred digital "techbooks"
+        for convenience and organization, while a third preferred paper textbooks, citing better retention
+        and focus.
+      </p>
+      <p class="blurb">
+        The interesting finding wasn't the split itself, it was why: digital tools were often chosen for
+        ease rather than actual learning effectiveness, and students whose learning styles were better
+        suited to physical media were being left behind by a one-size-fits-all rollout. That distinction —
+        between technology that's easier and technology that's actually better for learning — is the same
+        question I'm still working on, just with reinforcement-learning agents instead of laptops now.
+      </p>
+      <div class="stub-note">Have more specifics — sample size, methodology, where it was published or presented? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

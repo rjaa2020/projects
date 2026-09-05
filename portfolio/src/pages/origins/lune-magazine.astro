@@ -1,0 +1,17 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Lune Magazine — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Lune Magazine</h1>
+    <p class="page-lede">High school internship</p>
+    <section>
+      <p class="blurb">
+        This page is a placeholder — I don't have the details of what this role involved yet.
+      </p>
+      <div class="stub-note">Send over what you did here (role, dates, a project or two) and I'll write this page up properly.</div>
+    </section>
+  </div>
+</Layout>

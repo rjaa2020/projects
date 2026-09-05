@@ -1,0 +1,38 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Graphite Group — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Graphite Group</h1>
+    <p class="page-lede">Student-run consulting firm across the Claremont Colleges</p>
+    <section>
+      <p class="blurb">
+        Graphite Group is a student-run consulting firm spanning the five Claremont Colleges, split
+        between a strategy practice (market entry, positioning, pricing) and a digital practice (software,
+        data, product design). My engagements ranged more widely than most of what's on this site — which
+        was kind of the point of doing it.
+      </p>
+
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">BeReal user-acquisition campaign</div></div>
+        <p class="project-desc">Ran a growth campaign signing up new users across the Claremont Colleges.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Luxury resort acquisition — financial forecast</div></div>
+        <p class="project-desc">Built a financial forecast evaluating the acquisition of a luxury resort in Eastern Washington.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Celo mobile money launch</div></div>
+        <p class="project-desc">Supported the launch of Celo-based mobile money transfers for small-business transactions in developing markets.</p>
+      </div>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">Luxury pet-breeding facility — operations consulting</div></div>
+        <p class="project-desc">Diagnosed where team synergy was breaking down and where money was being lost, through financial forecasting and staff interviews.</p>
+      </div>
+
+      <div class="stub-note">Have more specifics on any of these — client names you can share publicly, outcomes, dates? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

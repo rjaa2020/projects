@@ -1,0 +1,24 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Foundry10 — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Foundry10</h1>
+    <p class="page-lede">Summer 2020</p>
+    <section>
+      <p class="blurb">
+        I interned with Foundry10 on their Career-Connected Learning and Life Skills team, working on a
+        financial-education platform under the mentorship of Hailey Williams and Ray Yeung. It was a
+        natural extension of the research question from my AP Research paper and the work behind Don't Be
+        Broke — how do you actually teach financial literacy to teenagers in a way that sticks.
+      </p>
+      <p class="blurb">
+        Foundry10's broader mission — expanding how we understand human learning — is close to the
+        question I've spent the years since trying to answer from the machine-learning side.
+      </p>
+      <div class="stub-note">Have more specifics — what the platform did, your specific contributions? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

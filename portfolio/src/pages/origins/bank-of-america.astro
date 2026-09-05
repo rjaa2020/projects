@@ -1,0 +1,25 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Bank of America National Civic Leadership Program — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Bank of America National Civic Leadership Program</h1>
+    <p class="page-lede">One of five students selected in Washington State</p>
+    <section>
+      <p class="blurb">
+        Selected as one of only five students statewide, I attended a national leadership summit in
+        Washington, D.C., alongside a strategic internship placement at Imagine Housing, a regional
+        affordable-housing nonprofit.
+      </p>
+      <p class="blurb">
+        The internship put me in board meetings and long-term planning sessions I had no business being
+        in as a high schooler — which was the point. I was there to bring a student's perspective to
+        conversations about regional social and economic issues, and to see firsthand how a nonprofit's
+        mission gets translated (or doesn't) into executive-level planning and budget decisions.
+      </p>
+      <div class="stub-note">Have more specifics — the summit's focus, a project at Imagine Housing, dates? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>

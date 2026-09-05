@@ -7,6 +7,17 @@ const {
   title = "Rahul Jain",
   description = "Rahul Jain — Solutions Consultant at Dassault Systèmes. Data, analytics, and machine learning for enterprise decision-making.",
 } = Astro.props;
+
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+const nav = [
+  { href: "", label: "Home" },
+  { href: "experience/", label: "Experience" },
+  { href: "projects/", label: "Projects & Research" },
+  { href: "education/", label: "Education" },
+  { href: "origins/", label: "Origins" },
+  { href: "contact/", label: "Contact" },
+];
+const path = Astro.url.pathname;
 ---
 <!doctype html>
 <html lang="en">
@@ -21,6 +32,25 @@ const {
     </style>
   </head>
   <body>
-    <slot />
+    <header class="site-header">
+      <div class="wrap">
+        <a href={base} class="name">Rahul Jain</a>
+        <nav>
+          {nav.map((item) => {
+            const href = base + item.href;
+            const isActive = path === href || (item.href === "" && path === base);
+            return <a href={href} class={isActive ? "active" : ""}>{item.label}</a>;
+          })}
+        </nav>
+      </div>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        &copy; {new Date().getFullYear()} Rahul Jain &middot; <a href={base + "contact/"}>Get in touch</a>
+      </div>
+    </footer>
   </body>
 </html>

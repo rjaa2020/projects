@@ -1,0 +1,26 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Youth Link Council — Rahul Jain">
+  <div class="wrap">
+    <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
+    <h1 class="page-title">Bellevue City Hall Youth Link Council</h1>
+    <p class="page-lede">Volunteer board member, then advisory role</p>
+    <section>
+      <p class="blurb">
+        My first year on the council was an eye-opening education in how legislative decision-making
+        actually happens — sitting through the unglamorous, procedural reality of municipal government
+        rather than the abstract version you get from a civics class. I eventually moved into an advisory
+        role, guiding city leaders on policy issues around youth equity, regional diversity, and how the
+        city allocated its resources.
+      </p>
+      <p class="blurb">
+        The bigger takeaway was less about policy specifics and more about agency: watching how much of
+        what gets called "leadership" is really just students choosing to take initiative rather than
+        waiting to be asked. That's stuck with me since.
+      </p>
+      <div class="stub-note">Have more specifics — a project you drove, a policy outcome, dates? Send them over and I'll add them.</div>
+    </section>
+  </div>
+</Layout>
