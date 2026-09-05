@@ -1,0 +1,26 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "Rahul Jain",
+  description = "Rahul Jain — Solutions Consultant at Dassault Systèmes. Data, analytics, and machine learning for enterprise decision-making.",
+} = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="data:," />
+    <style is:global>
+      @import "../styles/global.css";
+    </style>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
