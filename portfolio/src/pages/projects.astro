@@ -1,9 +1,10 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
 ---
-<Layout title="Projects & Research — Rahul Jain">
+<Layout title="Projects — Rahul Jain">
   <div class="wrap">
-    <h1 class="page-title">Projects &amp; Research</h1>
+    <h1 class="page-title">Projects</h1>
     <p class="page-lede">Things I've built and studied outside of my day job — production side projects, and research on how humans and machines learn.</p>
 
     <section>
@@ -19,31 +20,13 @@ import Layout from "../layouts/Layout.astro";
             Llama 3.3-70B generative pass only when structured extraction fails. That fallback design was
             the interesting part: JSON-LD gets you clean, auditable output whenever a site is well-formed,
             and the LLM only has to handle the genuinely messy long tail. It extracts and normalizes data
-            from 1,000+ live web sources and is in production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes</a> with real users.
+            from 1,000+ live web sources and is in production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes<Icon name="external" /></a> with real users.
           </p>
           <div class="tag-row">
             <span class="tag">RAG</span>
             <span class="tag">LLM</span>
             <span class="tag">JSON-LD</span>
             <span class="tag">Llama 3.3</span>
-          </div>
-        </div>
-
-        <div class="project-card">
-          <div class="project-title"><span>Growth-Ring Audio Signatures</span><span class="project-date">Ongoing</span></div>
-          <p class="project-desc">
-            A generative visualization pipeline that turns a musical performance into a unique visual
-            "signature." I extract timbral features — brightness, loudness — with librosa and render them
-            as a covariance structure of concentric growth-ring ellipses, so the shape of the rings reflects
-            the actual dynamics of the performance rather than an arbitrary waveform. Grew out of being a
-            working musician and wanting a way to visually distinguish one performance from another. I've
-            been exploring it as a format for physical art pieces or keepsakes — something you could give
-            someone from a recording of a specific show.
-          </p>
-          <div class="tag-row">
-            <span class="tag">Audio Analysis</span>
-            <span class="tag">librosa</span>
-            <span class="tag">Generative Art</span>
           </div>
         </div>
 
@@ -89,7 +72,7 @@ import Layout from "../layouts/Layout.astro";
       </div>
 
       <div class="subsection">
-        <h2 class="subsection-title">Research: Allen Institute (Mihalas Lab)</h2>
+        <h2 class="subsection-title">Research: <a href="https://alleninstitute.org/person/stefan-mihalas" target="_blank" rel="noopener">Allen Institute (Mihalas Lab)<Icon name="external" /></a></h2>
         <div class="entry-head" style="margin-bottom:4px;">
           <div><span class="entry-role">Research Collaborator</span></div>
           <div class="entry-date">Jul 2026 – Present</div>

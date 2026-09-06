@@ -1,11 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../components/Icon.astro";
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 ---
 <Layout title="MIT Inspire Competition — Rahul Jain">
   <div class="wrap">
     <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
-    <h1 class="page-title">MIT Inspire Competition</h1>
+    <h1 class="page-title"><a href="https://getinspired.mit.edu/" target="_blank" rel="noopener">MIT Inspire Competition<Icon name="external" /></a></h1>
     <p class="page-lede">Alternate finalist / semi-finalist, Bitcoin &amp; Financial Literacy research</p>
     <section>
       <p class="blurb">

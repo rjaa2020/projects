@@ -1,11 +1,12 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../components/Icon.astro";
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 ---
 <Layout title="Foundry10 — Rahul Jain">
   <div class="wrap">
     <a class="back-link" href={base + "origins/"}>&larr; Origins</a>
-    <h1 class="page-title">Foundry10</h1>
+    <h1 class="page-title"><a href="https://www.foundry10.org/" target="_blank" rel="noopener">Foundry10<Icon name="external" /></a></h1>
     <p class="page-lede">Summer 2020</p>
     <section>
       <p class="blurb">

@@ -1,6 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
+import { getCollection } from "astro:content";
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+
+const latestPosts = (await getCollection("writing", ({ data }) => !data.draft))
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+  .slice(0, 3);
 ---
 <Layout>
   <div class="wrap">
@@ -55,16 +61,12 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
 
     <section>
       <div class="home-section-head">
-        <h2 class="section-title">Projects &amp; Research</h2>
+        <h2 class="section-title">Projects</h2>
         <a class="read-more" href={base + "projects/"}>Read more &rarr;</a>
       </div>
       <div class="project-card">
         <div class="project-title"><span>Mizen</span><span class="project-date">Winter 2025</span></div>
-        <p class="project-desc">Dual-layer RAG pipeline normalizing recipe data from 1,000+ live sources. In production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes</a>.</p>
-      </div>
-      <div class="project-card">
-        <div class="project-title"><span>Growth-Ring Audio Signatures</span><span class="project-date">Ongoing</span></div>
-        <p class="project-desc">Turning musical performances into visual "signatures" — timbral features rendered as concentric growth rings.</p>
+        <p class="project-desc">Dual-layer RAG pipeline normalizing recipe data from 1,000+ live sources. In production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes<Icon name="external" /></a>.</p>
       </div>
       <div class="project-card">
         <div class="project-title"><span>Medley Vox</span><span class="project-date">Fall 2023</span></div>
@@ -112,11 +114,29 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
     </section>
 
     <section>
+      <div class="home-section-head">
+        <h2 class="section-title">Writing</h2>
+        <a class="read-more" href={base + "writing/"}>All posts &rarr;</a>
+      </div>
+      {latestPosts.length === 0 ? (
+        <p class="blurb">Technical notes and longer-form thinking, coming soon.</p>
+      ) : (
+        latestPosts.map((post) => (
+          <div class="post-list-item">
+            <div class="post-list-title"><a href={base + "writing/" + post.slug + "/"}>{post.data.title}</a></div>
+            <p class="post-list-desc">{post.data.description}</p>
+          </div>
+        ))
+      )}
+    </section>
+
+    <section>
       <h2 class="section-title">Contact</h2>
       <div class="contact-links">
-        <a href="mailto:rjaa2024@gmail.com">Email</a>
-        <a href="https://linkedin.com/in/rahulj24" target="_blank" rel="noopener">LinkedIn</a>
-        <a href="https://github.com/rjaa2020" target="_blank" rel="noopener">GitHub</a>
+        <a href="mailto:rjaa2024@gmail.com"><Icon name="mail" />Email</a>
+        <a href="https://linkedin.com/in/rahulj24" target="_blank" rel="noopener"><Icon name="linkedin" />LinkedIn</a>
+        <a href="https://github.com/rjaa2020" target="_blank" rel="noopener"><Icon name="github" />GitHub</a>
+        <a href="https://instagram.com/_raahul.j_" target="_blank" rel="noopener"><Icon name="instagram" />Instagram</a>
       </div>
     </section>
   </div>
