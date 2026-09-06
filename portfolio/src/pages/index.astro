@@ -1,143 +1,161 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import Icon from "../components/Icon.astro";
-import { getCollection } from "astro:content";
-const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
-
-const latestPosts = (await getCollection("writing", ({ data }) => !data.draft))
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 3);
+const year = new Date().getFullYear();
 ---
 <Layout>
   <div class="wrap">
-    <section>
-      <div class="tagline" style="font-size:20px; color:#111; max-width:640px;">
-        Solutions Consultant at Dassault Systèmes — I build the data pipelines and models, then
-        translate them into decisions executives act on.
-      </div>
-      <p class="blurb" style="margin-top:16px; max-width:640px;">
-        I currently partner with Fortune 500 engineering organizations — Boeing, NVIDIA, and Ford —
-        to scope and ship analytics platforms. Before that: forecasting models for early-stage VC,
-        credit-risk models for underserved borrowers, and a reinforcement-learning benchmarking study
-        comparing human and machine behavior. Outside of work, I'm a tenor saxophonist, jazz
-        bandleader, and I build small data-driven side projects for fun.
+    <header class="site-header">
+      <div class="name">Rahul Jain</div>
+      <div class="tagline">Solutions Consultant, Dassault Systèmes — data pipelines, analytics, and applied ML for enterprise decision-making.</div>
+      <nav>
+        <a href="#about">About</a>
+        <a href="#experience">Experience</a>
+        <a href="#projects">Projects</a>
+        <a href="#skills">Skills</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </header>
+
+    <section id="about">
+      <h2 class="section-title">About</h2>
+      <p class="lede">
+        I work at the intersection of data engineering and business strategy — building the
+        pipelines and models, then translating them into decisions executives can act on.
+      </p>
+      <p>
+        I'm currently a Solutions Consultant at Dassault Systèmes, where I partner directly with
+        Fortune 500 engineering organizations — including Boeing, NVIDIA, and Ford — to scope
+        problems, build analytics platforms, and drive adoption of the systems I ship. Before
+        that, I built forecasting models for early-stage venture funds, alternative credit-risk
+        models for underserved borrowers, and ran a reinforcement-learning benchmarking study
+        comparing human and machine learning behavior.
+      </p>
+      <p>
+        I studied Computer Science at Pomona College, with research in computational cognitive
+        science and reinforcement learning. Outside of work, I'm a tenor saxophonist and jazz
+        bandleader, and I build small data-driven projects for fun — most recently, a pipeline
+        that turns musical performances into visual "signatures."
       </p>
     </section>
 
-    <section>
-      <div class="home-section-head">
-        <h2 class="section-title">Experience</h2>
-        <a class="read-more" href={base + "experience/"}>Full history &rarr;</a>
-      </div>
+    <section id="experience">
+      <h2 class="section-title">Experience</h2>
+
       <div class="entry">
         <div class="entry-head">
           <div><span class="entry-role">Solutions Consultant</span> <span class="entry-org">· Dassault Systèmes</span></div>
           <div class="entry-date">Jul 2024 – Present</div>
         </div>
-        <p class="meta-line">Embedded with Boeing, NVIDIA, and Ford — license-utilization analytics, CI/CD automation, and a company-wide pitch win for a Humanoid Robotics integration strategy.</p>
+        <div class="meta-line">Seattle, WA</div>
+        <ul>
+          <li>Embed directly with Fortune 500 clients — Boeing, NVIDIA, and Ford — to scope requirements and own end-to-end delivery of analytics systems that inform operational and executive decisions.</li>
+          <li>Partner with Ford engineers on the 3DEXPERIENCE Platform to surface part-reuse opportunities and reduce cost rollup across future vehicle production programs.</li>
+          <li>Built and deployed a license-utilization platform tracking software adoption across large engineering orgs, then generalized the architecture for rollout to additional clients.</li>
+          <li>Automated model-publishing workflows via CI/CD and Python, with testing and failure notifications, eliminating roughly 10 hours per week of manual work.</li>
+          <li>Won a company-wide pitch competition for a Humanoid Robotics integration strategy on the 3DEXPERIENCE Platform.</li>
+        </ul>
       </div>
+
       <div class="entry">
         <div class="entry-head">
           <div><span class="entry-role">Data Analyst Intern</span> <span class="entry-org">· Modern Venture Partners</span></div>
           <div class="entry-date">Nov 2022 – Jun 2023</div>
         </div>
-        <p class="meta-line">PyTorch RNN forecasting funding trends across 2,000+ startups; SQL ETL over 900,000+ investment records.</p>
+        <div class="meta-line">Menlo Park, CA</div>
+        <ul>
+          <li>Built and trained a PyTorch RNN forecasting funding trends across 2,000+ startups; presented findings directly to firm partners to inform investment strategy.</li>
+          <li>Engineered SQL ETL workflows processing 900,000+ investment records, applying PCA and statistical analysis to surface portfolio signals.</li>
+        </ul>
       </div>
+
       <div class="entry">
         <div class="entry-head">
           <div><span class="entry-role">ML Research Assistant</span> <span class="entry-org">· W.M. Keck Science Center</span></div>
           <div class="entry-date">May – Aug 2023</div>
         </div>
-        <p class="meta-line">Benchmarked RL agents against 10,000+ human players; presented at a symposium in Rhodes, Greece.</p>
+        <div class="meta-line">Claremont, CA</div>
+        <ul>
+          <li>Designed and ran a benchmarking study comparing reinforcement-learning agent behavior against 10,000+ human players, identifying systematic differences in learning strategy, persistence, and trajectory shape.</li>
+          <li>Presented findings at the International Symposium on the Mathematics of Neuroscience in Rhodes, Greece.</li>
+        </ul>
       </div>
+
       <div class="entry">
         <div class="entry-head">
           <div><span class="entry-role">Data Analyst Intern</span> <span class="entry-org">· Level Goals</span></div>
           <div class="entry-date">May – Aug 2022</div>
         </div>
-        <p class="meta-line">Credit-score-free risk model for underserved borrowers; 8 executive-facing dashboards.</p>
+        <div class="meta-line">Seattle, WA</div>
+        <ul>
+          <li>Developed a credit-score-free risk model using behavioral signals — income consistency, gig-employment history — to assess default likelihood for underserved borrowers.</li>
+          <li>Built 8 executive-facing dashboards covering acquisition, A/B test results, and loan-repayment KPIs.</li>
+        </ul>
       </div>
     </section>
 
-    <section>
-      <div class="home-section-head">
-        <h2 class="section-title">Projects</h2>
-        <a class="read-more" href={base + "projects/"}>Read more &rarr;</a>
-      </div>
+    <section id="projects">
+      <h2 class="section-title">Projects</h2>
+
       <div class="project-card">
-        <div class="project-title"><span>Mizen</span><span class="project-date">Winter 2025</span></div>
-        <p class="project-desc">Dual-layer RAG pipeline normalizing recipe data from 1,000+ live sources. In production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes<Icon name="external" /></a>.</p>
+        <div class="project-title">
+          <span>Mizen</span>
+          <span class="project-date">Winter 2025</span>
+        </div>
+        <p class="project-desc">
+          A dual-layer retrieval-augmented generation pipeline — JSON-LD schema enforcement backed
+          by a Llama 3.3-70B fallback — that extracts and normalizes structured recipe data from
+          1,000+ live web sources. In production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes</a>.
+        </p>
+        <div class="tag-row">
+          <span class="tag">RAG</span>
+          <span class="tag">LLM</span>
+          <span class="tag">JSON-LD</span>
+          <span class="tag">Llama 3.3</span>
+        </div>
       </div>
+
       <div class="project-card">
-        <div class="project-title"><span>Medley Vox</span><span class="project-date">Fall 2023</span></div>
-        <p class="project-desc">RNN model for multi-singer detection and speaker diarization using SpeechBrain embeddings.</p>
+        <div class="project-title">
+          <span>Medley Vox</span>
+          <span class="project-date">Fall 2023</span>
+        </div>
+        <p class="project-desc">
+          Multi-singer detection and speaker diarization: an RNN model identifying overlapping
+          vocal identities using 512-dimensional SpeechBrain x-vector embeddings, outperforming
+          two established benchmarks on held-out test data.
+        </p>
+        <div class="tag-row">
+          <span class="tag">RNN</span>
+          <span class="tag">Speaker Diarization</span>
+          <span class="tag">SpeechBrain</span>
+        </div>
       </div>
-      <p class="blurb" style="margin-top:16px;">
-        On the research side: my senior thesis and Hexxed work compared how humans and
-        reinforcement-learning agents learn complex skills — humans learn in non-linear leaps, stubbornly
-        test bad strategies, and artificially narrow their own options; agents don't. I'm continuing that
-        thread as a Research Collaborator with the Allen Institute's Mihalas Lab, and extending the
-        underlying question into how AI systems should be designed to preserve, rather than erode, human
-        cognitive agency.
-      </p>
     </section>
 
-    <section>
-      <div class="home-section-head">
-        <h2 class="section-title">Education</h2>
-        <a class="read-more" href={base + "education/"}>Details &rarr;</a>
-      </div>
+    <section id="skills">
+      <h2 class="section-title">Skills</h2>
       <dl class="skills-grid">
-        <dt>Pomona College</dt>
-        <dd>B.A. Computer Science, May 2024 — GPA 3.7 (Data Science 3.9)</dd>
-        <dt>Study Abroad</dt>
-        <dd>Aquincum Institute of Technology, Budapest — Deep Learning, Spring 2023</dd>
-        <dt>Neuromatch Academy</dt>
-        <dd>NeuroAI intensive, July 2026</dd>
-        <dt>RLCIE Fellow</dt>
-        <dd>Randall Lewis Center for Innovation &amp; Entrepreneurship, Claremont McKenna College</dd>
+        <dt>Languages</dt>
+        <dd>Python, SQL (PostgreSQL), R, Java, JavaScript, Bash, PowerShell</dd>
+        <dt>ML &amp; AI</dt>
+        <dd>PyTorch, TensorFlow, Scikit-learn, RAG pipelines, LLM deployment, prompt engineering, RL benchmarking, PCA</dd>
+        <dt>Tools</dt>
+        <dd>Metabase, Retool, Tableau, GitLab, Jupyter, GCP, AWS, Pandas, NumPy</dd>
+        <dt>Education</dt>
+        <dd>B.A. Computer Science, Pomona College (2024) — research in computational cognitive science and reinforcement learning</dd>
       </dl>
     </section>
 
-    <section>
-      <div class="home-section-head">
-        <h2 class="section-title">Origins</h2>
-        <a class="read-more" href={base + "origins/"}>The longer story &rarr;</a>
-      </div>
-      <p class="blurb">
-        Before data and ML, there was civic work and teaching: a youth seat on Bellevue's City Hall
-        Youth Link Council, the Bank of America National Civic Leadership Program, four years teaching
-        aerospace concepts to kids at the Museum of Flight, and running a business-development role
-        for a college innovation center. I'm also a tenor saxophonist and jazz bandleader — Reading
-        Days, Seattle JazzED, and a high school jazz ensemble before that.
-      </p>
-    </section>
-
-    <section>
-      <div class="home-section-head">
-        <h2 class="section-title">Writing</h2>
-        <a class="read-more" href={base + "writing/"}>All posts &rarr;</a>
-      </div>
-      {latestPosts.length === 0 ? (
-        <p class="blurb">Technical notes and longer-form thinking, coming soon.</p>
-      ) : (
-        latestPosts.map((post) => (
-          <div class="post-list-item">
-            <div class="post-list-title"><a href={base + "writing/" + post.slug + "/"}>{post.data.title}</a></div>
-            <p class="post-list-desc">{post.data.description}</p>
-          </div>
-        ))
-      )}
-    </section>
-
-    <section>
+    <section id="contact">
       <h2 class="section-title">Contact</h2>
+      <p>Based in Seattle, WA. Open to conversations about strategy &amp; analytics roles, data platforms, and applied ML.</p>
       <div class="contact-links">
-        <a href="mailto:rjaa2024@gmail.com"><Icon name="mail" />Email</a>
-        <a href="https://linkedin.com/in/rahulj24" target="_blank" rel="noopener"><Icon name="linkedin" />LinkedIn</a>
-        <a href="https://github.com/rjaa2020" target="_blank" rel="noopener"><Icon name="github" />GitHub</a>
-        <a href="https://instagram.com/_raahul.j_" target="_blank" rel="noopener"><Icon name="instagram" />Instagram</a>
+        <a href="mailto:rjaa2024@gmail.com">Email</a>
+        <a href="https://linkedin.com/in/rahulj24" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="https://github.com/rjaa2020" target="_blank" rel="noopener">GitHub</a>
       </div>
     </section>
+
+    <footer>&copy; {year} Rahul Jain</footer>
   </div>
 </Layout>
