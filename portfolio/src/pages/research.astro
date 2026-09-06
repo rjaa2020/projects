@@ -7,8 +7,8 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
   <div class="wrap">
     <h1 class="page-title">AI &amp; Decision Making Research</h1>
     <p class="page-lede">
-      My starting premise is that <strong>human intelligence is remarkably flexible and general</strong> in ways today's
-      algorithms aren't. I use <strong>reinforcement-learning agents as a controllable baseline</strong> — not the
+      My starting premise is that human intelligence is remarkably flexible and general in ways today's
+      algorithms aren't. I use reinforcement-learning agents as a controllable baseline — not the
       reference class humans should be measured against, but a comparison point that helps isolate what's
       actually distinctive about how humans learn, generalize, and make decisions.
     </p>
@@ -22,10 +22,10 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
         </div>
         <p class="blurb">
           Continuing the same thread from Hexxed and my senior thesis, now on the mechanistic side: I'm
-          contributing to a computational framework unifying <strong>biologically-inspired predictive neural
-          networks with attention-based memory mechanisms</strong>, studying how networks encode and retrieve
-          working memory over time. Specifically, I'm looking at how <strong>heterogeneous per-synapse learning
-          rates</strong> — different parts of a network learning at different speeds, closer to how biological
+          contributing to a computational framework unifying biologically-inspired predictive neural
+          networks with attention-based memory mechanisms, studying how networks encode and retrieve
+          working memory over time. Specifically, I'm looking at how heterogeneous per-synapse learning
+          rates — different parts of a network learning at different speeds, closer to how biological
           synapses work — change what a network retains and prioritizes from recent experience, and
           whether that gets a model any closer to the flexibility biological memory shows. The
           theoretical predictions have been validated across <strong>16 complex sequential decision-making tasks</strong>,
@@ -53,8 +53,8 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
           <dd>Players occasionally jumped from a low-reward strategy straight to a high-reward one with no gradual ramp — a discontinuity that doesn't show up in agents that update incrementally.</dd>
         </dl>
         <p class="blurb" style="margin-top:16px;">
-          To compare this against machine learning, I represented Hexxed as a <strong>44-state Markov Decision
-          Process</strong> using the open-source <a href="https://github.com/awjuliani/neuro-nav" target="_blank" rel="noopener">Neuro-Nav Toolkit<Icon name="external" /></a>, then ran three classic reinforcement-learning
+          To compare this against machine learning, I represented Hexxed as a 44-state Markov Decision
+          Process using the open-source <a href="https://github.com/awjuliani/neuro-nav" target="_blank" rel="noopener">Neuro-Nav Toolkit<Icon name="external" /></a>, then ran three classic reinforcement-learning
           algorithms against it — TD-Q, Dyna-Q, and SARSA — each representing a different family of
           learning strategy (pure trial-and-error, model-based simulation, and on-policy learning,
           respectively). Dyna-Q, which builds and simulates from an internal model of the environment,
@@ -79,9 +79,9 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
           All of this feeds into how I think about AI product design. If people learn through <strong>productive
           struggle</strong> — narrowing their own options, testing bad ideas, occasionally leaping to insight —
           then an AI system that removes all friction from a task doesn't just save time, it can
-          <strong>short-circuit the process that builds real understanding</strong>. I'm interested in how AI "thought
-          partners" can be designed to collaborate with users in a way that <strong>sharpens judgment rather than
-          substituting for it</strong>, drawing on the <a href="https://doi.org/10.3758/BF03193814" target="_blank" rel="noopener">Ash &amp; Wiley impasse-restructuring mechanism<Icon name="external" /></a> and recent
+          short-circuit the process that builds real understanding. I'm interested in how AI "thought
+          partners" can be designed to collaborate with users in a way that sharpens judgment rather than
+          substituting for it, drawing on the <a href="https://doi.org/10.3758/BF03193814" target="_blank" rel="noopener">Ash &amp; Wiley impasse-restructuring mechanism<Icon name="external" /></a> and recent
           work connecting productive struggle to durable learning (Collins et al., 2024, <em>Nature Human
           Behaviour</em>). The same question sits underneath a much more mundane project like Mizen: even a
           recipe-extraction pipeline is an engineering answer to a version of the same problem — how do you
