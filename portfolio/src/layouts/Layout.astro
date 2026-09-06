@@ -5,16 +5,16 @@ export interface Props {
 }
 const {
   title = "Rahul Jain",
-  description = "Rahul Jain — Solutions Consultant at Dassault Systèmes. Data, analytics, and machine learning for enterprise decision-making.",
+  description = "Rahul Jain — Forward Deployed Engineer at Dassault Systèmes. Data, analytics, and machine learning for enterprise decision-making, with research in reinforcement learning and human cognition.",
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 const nav = [
   { href: "", label: "Home" },
   { href: "experience/", label: "Experience" },
-  { href: "projects/", label: "Projects" },
-  { href: "writing/", label: "Writing" },
-  { href: "education/", label: "Education" },
+  { href: "research/", label: "AI & Decision Making Research" },
+  { href: "academic/", label: "Academic" },
+  { href: "music/", label: "Music" },
   { href: "origins/", label: "Origins" },
   { href: "contact/", label: "Contact" },
 ];

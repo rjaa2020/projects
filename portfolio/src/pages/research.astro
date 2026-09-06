@@ -1,0 +1,105 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="AI & Decision Making Research — Rahul Jain">
+  <div class="wrap">
+    <h1 class="page-title">AI &amp; Decision Making Research</h1>
+    <p class="page-lede">
+      My starting premise is that <strong>human intelligence is remarkably flexible and general</strong> in ways today's
+      algorithms aren't. I use <strong>reinforcement-learning agents as a controllable baseline</strong> — not the
+      reference class humans should be measured against, but a comparison point that helps isolate what's
+      actually distinctive about how humans learn, generalize, and make decisions.
+    </p>
+
+    <section>
+      <div class="subsection">
+        <h2 class="subsection-title">Research: <a href="https://alleninstitute.org/person/stefan-mihalas" target="_blank" rel="noopener">Allen Institute (Mihalas Lab)<Icon name="external" /></a></h2>
+        <div class="entry-head" style="margin-bottom:4px;">
+          <div><span class="entry-role">Research Collaborator</span></div>
+          <div class="entry-date">Jul 2026 – Present</div>
+        </div>
+        <p class="blurb">
+          Continuing the same thread from Hexxed and my senior thesis, now on the mechanistic side: I'm
+          contributing to a computational framework unifying <strong>biologically-inspired predictive neural
+          networks with attention-based memory mechanisms</strong>, studying how networks encode and retrieve
+          working memory over time. Specifically, I'm looking at how <strong>heterogeneous per-synapse learning
+          rates</strong> — different parts of a network learning at different speeds, closer to how biological
+          synapses work — change what a network retains and prioritizes from recent experience, and
+          whether that gets a model any closer to the flexibility biological memory shows. The
+          theoretical predictions have been validated across <strong>16 complex sequential decision-making tasks</strong>,
+          and a paper is in preparation.
+        </p>
+      </div>
+
+      <div class="subsection">
+        <h2 class="subsection-title">Senior Thesis &amp; Hexxed</h2>
+        <p class="blurb">
+          My senior thesis, <em>Evaluating Reinforcement Learning Agents in Hexxed Game Using Neuro-Nav
+          Toolkit</em> asks whether reinforcement-learning
+          agents can serve as a meaningful baseline for understanding how humans solve genuinely hard
+          problems. Hexxed — a mobile strategy game built in-house at the W.M. Keck Science Center — is
+          structurally a version of the <strong>Knapsack Problem, a classic NP-hard optimization task</strong>. Using data
+          from <strong>10,000+ players and 2.5 million+ in-game actions</strong>, three consistent patterns emerged in how
+          humans approached it:
+        </p>
+        <dl class="skills-grid" style="margin-top:16px;">
+          <dt>Picky</dt>
+          <dd>Players relied on a narrow, preferred set of strategies rather than exploring the full space of options — a simplification that speeds up decisions but can miss better solutions.</dd>
+          <dt>Sticky</dt>
+          <dd>Players kept repeating a strategy well past the point of diminishing returns — and, counter to the obvious assumption, that persistence wasn't a sign of poor performance. Players who stuck with a strategy on their first attempts were more likely to beat the level quickly; the less successful players were the ones more willing to abandon a strategy and explore.</dd>
+          <dt>Leaps of insight</dt>
+          <dd>Players occasionally jumped from a low-reward strategy straight to a high-reward one with no gradual ramp — a discontinuity that doesn't show up in agents that update incrementally.</dd>
+        </dl>
+        <p class="blurb" style="margin-top:16px;">
+          To compare this against machine learning, I represented Hexxed as a <strong>44-state Markov Decision
+          Process</strong> using the open-source <a href="https://github.com/awjuliani/neuro-nav" target="_blank" rel="noopener">Neuro-Nav Toolkit<Icon name="external" /></a>, then ran three classic reinforcement-learning
+          algorithms against it — TD-Q, Dyna-Q, and SARSA — each representing a different family of
+          learning strategy (pure trial-and-error, model-based simulation, and on-policy learning,
+          respectively). Dyna-Q, which builds and simulates from an internal model of the environment,
+          <strong>came closest to human performance</strong> — plausibly because it's the most structurally similar to how
+          humans seem to build and test mental models. But none of the three reproduced the sudden leaps
+          of insight or the immediate coupling between early persistence and success that showed up in the
+          human data — evidence that whatever humans are doing to solve a task like this <strong>isn't just a
+          faster version of the same optimization process</strong>.
+        </p>
+        <p class="blurb" style="margin-top:16px;">
+          I presented these findings at the <a href="https://www.neuromonster.org/nm2023" target="_blank" rel="noopener">International Symposium on the Mathematics of Neuroscience<Icon name="external" /></a> in
+          Rhodes, Greece, and again at the <a href="https://consciousness.arizona.edu/science-consciousness-conference" target="_blank" rel="noopener">Science of Consciousness Conference<Icon name="external" /></a>.
+        </p>
+        <p class="blurb" style="margin-top:8px;">
+          <a href={base + "files/hexxed-senior-thesis-excerpt.pdf"} target="_blank" rel="noopener">Read an excerpt of the thesis (PDF)<Icon name="external" /></a>
+        </p>
+      </div>
+
+      <div class="subsection">
+        <h2 class="subsection-title">On AI and Cognitive Agency</h2>
+        <p class="blurb">
+          All of this feeds into how I think about AI product design. If people learn through <strong>productive
+          struggle</strong> — narrowing their own options, testing bad ideas, occasionally leaping to insight —
+          then an AI system that removes all friction from a task doesn't just save time, it can
+          <strong>short-circuit the process that builds real understanding</strong>. I'm interested in how AI "thought
+          partners" can be designed to collaborate with users in a way that <strong>sharpens judgment rather than
+          substituting for it</strong>, drawing on the <a href="https://doi.org/10.3758/BF03193814" target="_blank" rel="noopener">Ash &amp; Wiley impasse-restructuring mechanism<Icon name="external" /></a> and recent
+          work connecting productive struggle to durable learning (Collins et al., 2024, <em>Nature Human
+          Behaviour</em>). The same question sits underneath a much more mundane project like Mizen: even a
+          recipe-extraction pipeline is an engineering answer to a version of the same problem — how do you
+          retrieve the right knowledge from a noisy source and represent it usefully downstream, the way a
+          person does almost without thinking.
+        </p>
+      </div>
+
+      <div class="subsection">
+        <h2 class="subsection-title">Publications &amp; Presentations</h2>
+        <ul>
+          <li>Jain, R., et al. Working paper unifying predictive neural networks and attention-based memory mechanisms, Allen Institute (Mihalas Lab), in preparation.</li>
+          <li>Jain, R., Agarwal, G., and Osborn, J. <a href={base + "files/hexxed-senior-thesis-excerpt.pdf"} target="_blank" rel="noopener">"Evaluating Reinforcement Learning Agents in Hexxed Game Using Neuro-Nav Toolkit."<Icon name="external" /></a> Pomona College Senior Thesis, April 2024.</li>
+          <li>Jain, R. "Leaps of Insight in Humans Learning a Complex Skill." <a href="https://consciousness.arizona.edu/science-consciousness-conference" target="_blank" rel="noopener">The Science of Consciousness Conference<Icon name="external" /></a>, April 2024.</li>
+          <li>Jain, R. "You Got Hexxed: Persistence during Complex Skill Learning." <a href="https://www.neuromonster.org/nm2023" target="_blank" rel="noopener"><em>International Symposium on the Mathematics of Neuroscience</em><Icon name="external" /></a>, Rhodes, Greece, 2023.</li>
+        </ul>
+      </div>
+      <img class="page-photo" src={base + "images/rahul-hexxed-talk.jpg"} alt="Rahul Jain presenting Hexxed research at the International Symposium on the Mathematics of Neuroscience, Rhodes, Greece" width="900" height="501" style="max-width:600px;" />
+    </section>
+  </div>
+</Layout>

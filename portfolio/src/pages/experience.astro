@@ -5,12 +5,12 @@ import Icon from "../components/Icon.astro";
 <Layout title="Experience — Rahul Jain">
   <div class="wrap">
     <h1 class="page-title">Experience</h1>
-    <p class="page-lede">Full professional history, with more context than a resume bullet allows.</p>
+    <p class="page-lede">Full professional history, with <strong>more context than a resume bullet allows</strong>.</p>
 
     <section>
       <div class="entry">
         <div class="entry-head">
-          <div><span class="entry-role">Solutions Consultant</span> <span class="entry-org">· <a href="https://www.3ds.com/" target="_blank" rel="noopener">Dassault Systèmes<Icon name="external" /></a></span></div>
+          <div><span class="entry-role">Forward Deployed Engineer</span> <span class="entry-org">· <a href="https://www.3ds.com/" target="_blank" rel="noopener">Dassault Systèmes<Icon name="external" /></a></span></div>
           <div class="entry-date">Jul 2024 – Present</div>
         </div>
         <div class="meta-line">Seattle, WA</div>
@@ -21,6 +21,19 @@ import Icon from "../components/Icon.astro";
           <li>Co-designed structural validation plugins for Cameo Systems Modeler and CATIA Magic alongside NVIDIA engineers, formalizing automated verification for complex systems architectures.</li>
           <li>Automated model-publishing workflows via CI/CD and Python, with testing and failure notifications, eliminating roughly 10 hours per week of manual work.</li>
           <li>Won a company-wide pitch competition for a Humanoid Robotics integration strategy on the 3DEXPERIENCE Platform.</li>
+        </ul>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role">ML Research Assistant</span> <span class="entry-org">· <a href="https://www.kecksci.claremont.edu/default.asp" target="_blank" rel="noopener">W.M. Keck Science Center<Icon name="external" /></a></span></div>
+          <div class="entry-date">May – Aug 2023</div>
+        </div>
+        <div class="meta-line">Claremont, CA</div>
+        <ul>
+          <li>Designed and ran a benchmarking study comparing reinforcement-learning agent behavior against 10,000+ human players, identifying systematic differences in strategy-space exploration, persistence on suboptimal strategies, and the shape of learning curves.</li>
+          <li>Characterized a "leapy" signature in human learning trajectories — non-linear jumps consistent with sudden insight — absent from incremental, gradient-based agent learning.</li>
+          <li>Presented findings at the <a href="https://www.neuromonster.org/nm2023" target="_blank" rel="noopener">International Symposium on the Mathematics of Neuroscience<Icon name="external" /></a> in Rhodes, Greece.</li>
         </ul>
       </div>
 
@@ -38,19 +51,6 @@ import Icon from "../components/Icon.astro";
 
       <div class="entry">
         <div class="entry-head">
-          <div><span class="entry-role">ML Research Assistant</span> <span class="entry-org">· <a href="https://www.kecksci.claremont.edu/default.asp" target="_blank" rel="noopener">W.M. Keck Science Center<Icon name="external" /></a></span></div>
-          <div class="entry-date">May – Aug 2023</div>
-        </div>
-        <div class="meta-line">Claremont, CA · Advised by Dr. Gautam Agarwal</div>
-        <ul>
-          <li>Designed and ran a benchmarking study comparing reinforcement-learning agent behavior against 10,000+ human players, identifying systematic differences in strategy-space exploration, persistence on suboptimal strategies, and the shape of learning curves.</li>
-          <li>Characterized a "leapy" signature in human learning trajectories — non-linear jumps consistent with sudden insight — absent from incremental, gradient-based agent learning.</li>
-          <li>Presented findings at the International Symposium on the Mathematics of Neuroscience in Rhodes, Greece.</li>
-        </ul>
-      </div>
-
-      <div class="entry">
-        <div class="entry-head">
           <div><span class="entry-role">Data Analyst Intern</span> <span class="entry-org">· <a href="https://www.levelgoals.com/" target="_blank" rel="noopener">Level Goals<Icon name="external" /></a></span></div>
           <div class="entry-date">May – Aug 2022</div>
         </div>
@@ -63,12 +63,20 @@ import Icon from "../components/Icon.astro";
 
       <div class="entry">
         <div class="entry-head">
-          <div><span class="entry-role">Teaching Assistant</span> <span class="entry-org">· Pomona College Computer Science Department</span></div>
+          <div><span class="entry-role">Teaching Assistant</span> <span class="entry-org">· <a href="https://www.pomona.edu/" target="_blank" rel="noopener">Pomona College<Icon name="external" /></a> Computer Science Department</span></div>
           <div class="entry-date">2022 – 2024</div>
         </div>
         <div class="meta-line">Claremont, CA</div>
         <ul>
           <li>Supported 30+ students across linear algebra and neural network dynamics coursework, translating abstract mathematical material into intuitive models through office hours and small-group instruction.</li>
+        </ul>
+      </div>
+
+      <div class="subsection">
+        <h2 class="subsection-title">Side Projects</h2>
+        <ul>
+          <li><strong>Mizen</strong> (Winter 2025) — a dual-layer RAG pipeline (JSON-LD schema enforcement, Llama 3.3-70B fallback) extracting structured recipe data from 1,000+ live sources. In production at <a href="https://mizen.recipes" target="_blank" rel="noopener">mizen.recipes<Icon name="external" /></a>.</li>
+          <li><strong>Medley Vox</strong> (Fall 2023) — an RNN for multi-singer detection and speaker diarization using 512D SpeechBrain x-vector embeddings, outperforming two established benchmarks.</li>
         </ul>
       </div>
     </section>

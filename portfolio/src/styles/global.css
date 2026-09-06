@@ -489,3 +489,65 @@ a .icon {
   margin: 0 0 16px;
   font-style: italic;
 }
+
+/* ---- photos ---- */
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.headshot {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.page-photo {
+  display: block;
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  margin: 16px 0 24px;
+}
+
+.photo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+.photo-row .page-photo {
+  margin: 0;
+  flex: 0 1 220px;
+  width: auto;
+  max-width: 280px;
+  height: auto;
+}
+
+.abstract-quote {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  margin: 20px 0;
+}
+.abstract-quote .abstract-label {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.abstract-quote p {
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.abstract-quote p:last-child {
+  margin-bottom: 0;
+}

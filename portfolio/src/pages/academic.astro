@@ -1,0 +1,63 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Icon from "../components/Icon.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
+---
+<Layout title="Academic — Rahul Jain">
+  <div class="wrap">
+    <h1 class="page-title">Academic</h1>
+
+    <section>
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role"><a href="https://neuroai.neuromatch.io/" target="_blank" rel="noopener">Neuromatch Academy — NeuroAI<Icon name="external" /></a></span></div>
+          <div class="entry-date">July 2026</div>
+        </div>
+        <p class="project-desc">
+          Two-week full-time intensive on <strong>computational principles of learning and generalization</strong> shared
+          across neuroscience, cognitive science, and machine learning — task structure, model
+          architectures, and learning rules — capped with a collaborative research project on <strong>comparative
+          network analysis across architectures</strong>.
+        </p>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role">B.A. Computer Science</span> <span class="entry-org">· <a href="https://www.pomona.edu/" target="_blank" rel="noopener">Pomona College<Icon name="external" /></a></span></div>
+          <div class="entry-date">May 2024</div>
+        </div>
+        <div class="meta-line">Claremont, CA · Cumulative GPA 3.7, Data Science GPA 3.9</div>
+        <p class="project-desc">
+          Fellow, CMC Center for Innovation and Entrepreneurship.
+          Coursework: <strong>Machine Learning, Data Mining, Applied Algorithms</strong>, Statistics, Linear Algebra,
+          Neural Network Dynamics.
+        </p>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role">RLCIE Fellow</span> <span class="entry-org">· <a href="https://www.cmc.edu/rlcie/programs/fellows-program" target="_blank" rel="noopener">Randall Lewis Center for Innovation &amp; Entrepreneurship<Icon name="external" /></a></span></div>
+          <div class="entry-date">May 2024</div>
+        </div>
+        <div class="meta-line">Claremont McKenna College</div>
+        <p class="project-desc">
+          A cross-registration designation open to students across the Claremont Colleges who engage
+          substantially with RLCIE's experiential entrepreneurship programs. Earned by completing the
+          program's academic coursework requirement, using my <strong>senior thesis to satisfy the capstone
+          requirement</strong>, and completing the required entrepreneurship workshops.
+        </p>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role">Study Abroad</span> <span class="entry-org">· <a href="https://www.ait-budapest.com/" target="_blank" rel="noopener">Aquincum Institute of Technology<Icon name="external" /></a></span></div>
+          <div class="entry-date">Spring 2023</div>
+        </div>
+        <div class="meta-line">Budapest, Hungary</div>
+        <p class="project-desc"><strong>Deep Learning and Data Science</strong> coursework.</p>
+      </div>
+
+      <img class="page-photo" src={base + "images/rahul-graduation.jpg"} alt="Rahul Jain at Pomona College graduation with classmates" width="695" height="890" />
+    </section>
+  </div>
+</Layout>
