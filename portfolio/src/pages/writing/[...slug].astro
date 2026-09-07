@@ -15,7 +15,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await post.render();
 
-const dateFmt = (d: Date) => d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+const dateFmt = (d: Date) => d.toLocaleDateString("en-US", { year: "numeric", month: "long", timeZone: "UTC" });
 ---
 <Layout title={post.data.title + " — Rahul Jain"} description={post.data.description}>
   <div class="wrap">
@@ -24,6 +24,7 @@ const dateFmt = (d: Date) => d.toLocaleDateString("en-US", { year: "numeric", mo
       <h1 class="page-title" style="margin-top:8px;">{post.data.title}</h1>
       <div class="post-date">{dateFmt(post.data.pubDate)}</div>
     </div>
+    <p class="post-thesis">{post.data.description}</p>
     <div class="post-body">
       <Content />
     </div>

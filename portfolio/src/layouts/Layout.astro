@@ -53,5 +53,33 @@ const path = Astro.url.pathname;
         &copy; {new Date().getFullYear()} Rahul Jain &middot; <a href={base + "contact/"}>Get in touch</a>
       </div>
     </footer>
+    <div class="lightbox-overlay" id="lightbox-overlay">
+      <img id="lightbox-overlay-img" src="" alt="" />
+    </div>
   </body>
 </html>
+
+<script>
+  function setupLightbox() {
+    const overlay = document.getElementById("lightbox-overlay");
+    const overlayImg = document.getElementById("lightbox-overlay-img");
+    if (!overlay || !overlayImg) return;
+
+    document.querySelectorAll("main img").forEach((img) => {
+      img.addEventListener("click", () => {
+        overlayImg.setAttribute("src", img.getAttribute("src") || "");
+        overlayImg.setAttribute("alt", img.getAttribute("alt") || "");
+        overlay.classList.add("active");
+      });
+    });
+
+    const close = () => overlay.classList.remove("active");
+    overlay.addEventListener("click", close);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    });
+  }
+
+  setupLightbox();
+  document.addEventListener("astro:page-load", setupLightbox);
+</script>

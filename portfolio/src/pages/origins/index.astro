@@ -5,60 +5,40 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
 <Layout title="Origins — Rahul Jain">
   <div class="wrap">
     <h1 class="page-title">Origins</h1>
-    <p class="page-lede">Before data and machine learning, there was civic work, teaching, and a jazz horn. The throughline is the same: <strong>figure out how a system actually works, then make it work better</strong> for the people inside it. Click into any of these for the fuller story.</p>
 
     <section>
-      <div class="subsection">
-        <h2 class="subsection-title">Civic &amp; Youth Leadership</h2>
-        <a class="activity-card" href={base + "origins/youth-link-council/"}>
-          <div class="activity-title"><span>Bellevue City Hall Youth Link Council <span class="activity-org">&middot; 2015&ndash;2020</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Volunteer board member, then advisory role, on youth equity and resource allocation.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/bank-of-america/"}>
-          <div class="activity-title"><span>Bank of America National Civic Leadership Program <span class="activity-org">&middot; Summer 2019</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">One of five students selected in Washington State; a D.C. summit and an internship at Imagine Housing.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/museum-of-flight/"}>
-          <div class="activity-title"><span>Museum of Flight — Museum Apprentice Program <span class="activity-org">&middot; 2016&ndash;2020</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Four years teaching aerospace concepts to elementary school kids.</p>
-        </a>
-      </div>
-
-      <div class="subsection">
-        <h2 class="subsection-title">Early Research &amp; Ventures</h2>
-        <a class="activity-card" href={base + "origins/mit-inspire/"}>
-          <div class="activity-title"><span>MIT Inspire Competition <span class="activity-org">&middot; 2017 &amp; 2018</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Research on the gap in teen financial literacy and cryptocurrency as a hook.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/dont-be-broke/"}>
-          <div class="activity-title"><span>Don't Be Broke <span class="activity-org">&middot; Winter 2018</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Co-founded a non-profit teaching financial literacy, born from a Startup Weekend win.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/edtech-research/"}>
-          <div class="activity-title"><span>AP Research: EdTech Effectiveness <span class="activity-org">&middot; 2018&ndash;2019</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Studied whether school-issued laptops actually helped students learn.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/ai-in-society/"}>
-          <div class="activity-title"><span>Adopting Artificial Intelligence in Contemporary Society <span class="activity-org">&middot; 2017&ndash;2018</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">AP Seminar paper weighing the economic case for AI adoption against its privacy and labor costs.</p>
-        </a>
-      </div>
-
-      <div class="subsection">
-        <h2 class="subsection-title">Internships &amp; Consulting</h2>
-        <a class="activity-card" href={base + "origins/foundry10/"}>
-          <div class="activity-title"><span>Foundry10 <span class="activity-org">· Summer 2020</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Helped build a financial-education platform for the Career-Connected Learning team.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/rlcie-bd-manager/"}>
-          <div class="activity-title"><span>Business Development On-Campus Manager <span class="activity-org">· RLCIE &middot; 2020&ndash;2022</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">One of five campus leads connecting student entrepreneurs to the RLCIE network.</p>
-        </a>
-        <a class="activity-card" href={base + "origins/graphite-group/"}>
-          <div class="activity-title"><span>Graphite Group <span class="activity-org">&middot; 2020&ndash;2022</span> <span class="arrow">&rarr;</span></span></div>
-          <p class="activity-teaser">Consulting engagements spanning growth marketing, real estate finance, and fintech.</p>
-        </a>
-      </div>
+      <a class="activity-card" href={base + "origins/foundry10/"}>
+        <div class="activity-title"><span>Foundry10 <span class="activity-org">· Summer 2020</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Helped build a financial-education platform for the Career-Connected Learning team.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/youth-link-council/"}>
+        <div class="activity-title"><span>Bellevue City Hall Youth Link Council <span class="activity-org">&middot; 2015&ndash;2020</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Volunteer board member, then advisory role, on youth equity and resource allocation.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/museum-of-flight/"}>
+        <div class="activity-title"><span>Museum of Flight — Museum Apprentice Program <span class="activity-org">&middot; 2016&ndash;2020</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Four years teaching aerospace concepts to elementary school kids.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/bank-of-america/"}>
+        <div class="activity-title"><span>Bank of America National Civic Leadership Program <span class="activity-org">&middot; Summer 2019</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">One of five students selected in Washington State; a D.C. summit and an internship at Imagine Housing.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/edtech-research/"}>
+        <div class="activity-title"><span>AP Research: EdTech Effectiveness <span class="activity-org">&middot; 2018&ndash;2019</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Studied whether school-issued laptops actually helped students learn.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/dont-be-broke/"}>
+        <div class="activity-title"><span>Don't Be Broke <span class="activity-org">&middot; Winter 2018</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Co-founded a non-profit teaching financial literacy, born from a Startup Weekend win.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/ai-in-society/"}>
+        <div class="activity-title"><span>Adopting Artificial Intelligence in Contemporary Society <span class="activity-org">&middot; 2017&ndash;2018</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">AP Seminar paper weighing the economic case for AI adoption against its privacy and labor costs.</p>
+      </a>
+      <a class="activity-card" href={base + "origins/mit-inspire/"}>
+        <div class="activity-title"><span>MIT Inspire Competition <span class="activity-org">&middot; 2017 &amp; 2018</span> <span class="arrow">&rarr;</span></span></div>
+        <p class="activity-teaser">Research on the gap in teen financial literacy and cryptocurrency as a hook.</p>
+      </a>
     </section>
   </div>
 </Layout>

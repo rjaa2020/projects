@@ -1,6 +1,7 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Icon from "../components/Icon.astro";
+const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 ---
 <Layout title="Experience — Rahul Jain">
   <div class="wrap">
@@ -68,6 +69,28 @@ import Icon from "../components/Icon.astro";
         <div class="meta-line">Claremont, CA</div>
         <ul>
           <li>Supported 30+ students across linear algebra and neural network dynamics coursework, translating abstract mathematical material into intuitive models through office hours and small-group instruction.</li>
+        </ul>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role"><a href={base + "experience/graphite-group/"}>Graphite Group</a></span></div>
+          <div class="entry-date">2020 – 2022</div>
+        </div>
+        <div class="meta-line">Claremont Colleges</div>
+        <ul>
+          <li>Consulting engagements spanning growth marketing, real estate finance, and fintech across a student-run firm serving the five Claremont Colleges.</li>
+        </ul>
+      </div>
+
+      <div class="entry">
+        <div class="entry-head">
+          <div><span class="entry-role"><a href={base + "experience/rlcie-bd-manager/"}>Business Development On-Campus Manager</a></span> <span class="entry-org">· RLCIE</span></div>
+          <div class="entry-date">2020 – 2022</div>
+        </div>
+        <div class="meta-line">Claremont McKenna College</div>
+        <ul>
+          <li>One of five campus leads connecting student entrepreneurs to the RLCIE network across the Claremont Colleges.</li>
         </ul>
       </div>
 

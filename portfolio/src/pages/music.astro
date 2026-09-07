@@ -6,8 +6,18 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
 <Layout title="Music — Rahul Jain">
   <div class="wrap">
     <h1 class="page-title">Tenor Saxophonist &amp; Bandleader</h1>
-    <p class="page-lede pull-quote" style="font-size:18px;">The most creative solutions often emerge from working skillfully within constraints, not around them.</p>
+
+    <div class="photo-row">
+      <img class="page-photo" src={base + "images/rahul-saxophone.jpg"} alt="Rahul Jain playing tenor saxophone on stage" width="792" height="1161" />
+      <img class="page-photo" src={base + "images/rahul-saxophone-band.jpg"} alt="Rahul Jain performing tenor saxophone with a jazz band" width="652" height="794" />
+      <img class="page-photo" src={base + "images/rahul-saxophone-group.jpg"} alt="Rahul Jain performing tenor saxophone with a group on stage" width="900" height="579" />
+    </div>
+
     <section>
+      <div class="entry">
+        <div class="entry-head"><div class="entry-role">The Maple Leaves</div><div class="entry-date">Winter 2025</div></div>
+        <p class="project-desc">Tenor saxophonist in this five-piece combo through the <a href="https://www.seattlejazzacademy.com/teachers/conner-helms" target="_blank" rel="noopener">Seattle Jazz Academy<Icon name="external" /></a>, led by Conner Helms.</p>
+      </div>
       <div class="entry">
         <div class="entry-head"><div class="entry-role">Reading Days</div><div class="entry-date">Spring 2024</div></div>
         <p class="project-desc">Bandleader for this jazz quintet, merging artistic direction with the logistical management of running a band — bookings, rehearsals, and keeping five people's schedules aligned.</p>
@@ -27,11 +37,5 @@ const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL :
         thinking everywhere else.
       </p>
     </section>
-
-    <div class="photo-row">
-      <img class="page-photo" src={base + "images/rahul-saxophone.jpg"} alt="Rahul Jain playing tenor saxophone on stage" width="792" height="1161" />
-      <img class="page-photo" src={base + "images/rahul-saxophone-band.jpg"} alt="Rahul Jain performing tenor saxophone with a jazz band" width="652" height="794" />
-      <img class="page-photo" src={base + "images/rahul-saxophone-group.jpg"} alt="Rahul Jain performing tenor saxophone with a group on stage" width="900" height="579" />
-    </div>
   </div>
 </Layout>
