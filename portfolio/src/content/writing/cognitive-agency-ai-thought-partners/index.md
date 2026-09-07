@@ -2,7 +2,7 @@
 title: "Cognitive Agency in the Age of AI Thought Partners"
 description: "AI thought partners that resolve problems too quickly may be quietly eroding the cognitive struggle that builds independent thinking."
 pubDate: 2026-06-01
-tags: ["ai", "cognitive-science", "education"]
+tags: ["ai", "cognitive-science", "education", "llms", "critical-thinking", "productive-struggle", "insight", "ai-in-education"]
 slug: "cognitive-agency-ai-thought-partners"
 ---
 

@@ -67,8 +67,22 @@ if (form) {
     }, 0);
   }
 
-  function renderResults(ranked, label, statusText, query = "") {
-    results.innerHTML = ranked.map((page) => `
+  function groupBySection(ranked) {
+    const order = [];
+    const groups = new Map();
+    for (const page of ranked) {
+      const key = page.section || "Site";
+      if (!groups.has(key)) {
+        groups.set(key, []);
+        order.push(key);
+      }
+      groups.get(key).push(page);
+    }
+    return order.map((section) => ({ section, pages: groups.get(section) }));
+  }
+
+  function renderResult(page, query) {
+    return `
       <article class="search-result">
         <div class="post-list-title"><a href="${page.url}">${highlight(page.title, query)}</a></div>
         ${page.date ? `<div class="post-list-date">${date(page.date)}</div>` : ""}
@@ -76,6 +90,16 @@ if (form) {
         ${page.semanticMatch ? `<p class="search-match"><span>Related passage</span> ${highlightSemantic(page.semanticMatch, query)}</p>` : ""}
         ${page.tags.length ? `<div class="tag-row">${page.tags.map((tag) => `<span class="tag">${highlight(tag, query)}</span>`).join("")}</div>` : ""}
       </article>
+    `;
+  }
+
+  function renderResults(ranked, label, statusText, query = "") {
+    const groups = groupBySection(ranked);
+    results.innerHTML = groups.map(({ section, pages }) => `
+      <div class="search-group">
+        <div class="search-group-title">${escapeHtml(section)}</div>
+        ${pages.map((page) => renderResult(page, query)).join("")}
+      </div>
     `).join("");
     meta.textContent = statusText || `${ranked.length} ${label}${ranked.length === 1 ? "" : "s"}`;
     empty.hidden = ranked.length > 0;

@@ -13,6 +13,17 @@ const {
 
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 const posts = await getCollection("writing", ({ data }) => !data.draft);
+const sectionLabels = {
+  "": "Home",
+  experience: "Experience",
+  research: "Research",
+  academic: "Academic",
+  music: "Music",
+  origins: "Origins",
+  writing: "Writing",
+  contact: "Contact",
+};
+const sectionFor = (path) => sectionLabels[path.split("/")[0]] ?? "Site";
 const sitePages = searchablePages.map(([title, path, description, keywords]) => ({
   title,
   description,
@@ -22,6 +33,7 @@ const sitePages = searchablePages.map(([title, path, description, keywords]) => 
   date: "",
   url: base + path,
   fetchUrl: base + path,
+  section: sectionFor(path),
 }));
 const writingIndex = posts.map((post) => ({
   title: post.data.title,
@@ -31,6 +43,7 @@ const writingIndex = posts.map((post) => ({
   body: post.body,
   date: post.data.pubDate.toISOString(),
   url: base + "writing/" + post.slug + "/",
+  section: "Writing",
 }));
 const serializedSearchIndex = JSON.stringify([...sitePages, ...writingIndex]).replace(/</g, "\\u003c");
 const nav = [

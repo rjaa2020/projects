@@ -2,7 +2,7 @@
 title: "Computational Foundations of Human Thought"
 description: "A two-level framework for why expert cognition reorganizes in discrete leaps rather than accumulating gradually — and why that gap might explain the difference between human and machine learning."
 pubDate: 2024-12-01
-tags: ["cognitive-science", "ai", "reinforcement-learning", "representational-change"]
+tags: ["cognitive-science", "ai", "reinforcement-learning", "representational-change", "insight", "bayesian-program-learning", "expertise", "concept-learning", "neuroscience", "machine-learning"]
 slug: "computational-foundations-of-human-thought"
 ---
 

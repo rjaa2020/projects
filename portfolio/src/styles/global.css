@@ -115,8 +115,26 @@ header.site-header nav a:hover {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
+.search-popover .search-group + .search-group {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+.search-popover .search-group-title {
+  padding: 10px 0 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .search-popover .search-result {
   padding: 12px 0;
+}
+
+.search-popover .search-result + .search-result {
+  border-top: 1px solid var(--line);
 }
 
 .search-popover .post-list-desc {
