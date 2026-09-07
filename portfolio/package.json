@@ -9,6 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "astro": "^4.16.0"
   }
 }
