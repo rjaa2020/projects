@@ -3,6 +3,8 @@ const session = require('express-session');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs/promises');
+const { Pool } = require('pg');
+const PgSessionStore = require('connect-pg-simple')(session);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,9 +13,36 @@ const USER_SAVE_FILE = path.join(__dirname, 'data', 'user-saves.json');
 const INSTRUMENT_KEYS = ['C', 'Bb', 'Eb'];
 const PRACTICE_ROOT_ORDER = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
+// When DATABASE_URL is set, practice sessions and named saves persist in
+// Postgres and survive restarts/redeploys. Without it, everything falls
+// back to in-memory storage (fine for local dev, resets on restart).
+const DATABASE_URL = process.env.DATABASE_URL || '';
+const pgPool = DATABASE_URL
+  ? new Pool({
+      connectionString: DATABASE_URL,
+      ssl: process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false }
+    })
+  : null;
+
+async function ensureUserSavesTable() {
+  if (!pgPool) {
+    return;
+  }
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS user_saves (
+      name TEXT PRIMARY KEY,
+      updated_at TIMESTAMPTZ NOT NULL,
+      state JSONB NOT NULL
+    )
+  `);
+}
+
 app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
+    store: pgPool
+      ? new PgSessionStore({ pool: pgPool, tableName: 'session', createTableIfMissing: true })
+      : undefined,
     secret: process.env.WOODSHED_SESSION_SECRET || 'woodshed-dev-secret',
     resave: false,
     saveUninitialized: true,
@@ -115,19 +144,46 @@ function normalizeUserName(value) {
   return String(value || '').trim().slice(0, 40);
 }
 
-// In-memory only: named saves live for the lifetime of this server process
-// (current session/deployment), never written to disk.
+// In-memory fallback for named saves, used only when DATABASE_URL isn't set.
 const IN_MEMORY_USER_SAVES = {};
 
 async function readUserSaves() {
-  return IN_MEMORY_USER_SAVES;
+  if (!pgPool) {
+    return IN_MEMORY_USER_SAVES;
+  }
+  const { rows } = await pgPool.query('SELECT name, updated_at, state FROM user_saves');
+  const saves = {};
+  for (const row of rows) {
+    saves[row.name] = { updatedAt: row.updated_at.toISOString(), state: row.state };
+  }
+  return saves;
 }
 
 async function writeUserSaves(saves) {
-  for (const key of Object.keys(IN_MEMORY_USER_SAVES)) {
-    delete IN_MEMORY_USER_SAVES[key];
+  if (!pgPool) {
+    for (const key of Object.keys(IN_MEMORY_USER_SAVES)) {
+      delete IN_MEMORY_USER_SAVES[key];
+    }
+    Object.assign(IN_MEMORY_USER_SAVES, saves);
+    return;
   }
-  Object.assign(IN_MEMORY_USER_SAVES, saves);
+  const client = await pgPool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM user_saves');
+    for (const [name, entry] of Object.entries(saves)) {
+      await client.query(
+        'INSERT INTO user_saves (name, updated_at, state) VALUES ($1, $2, $3)',
+        [name, entry.updatedAt, entry.state]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 function isValidPrompt(prompt) {
@@ -1657,7 +1713,14 @@ app.post('/quit', async (req, res) => {
   }, 150);
 });
 
-app.listen(PORT, () => {
-  console.log(`Woodshed web running at http://localhost:${PORT}`);
-  console.log(`Using Woodshed API: ${API_BASE_URL}`);
-});
+ensureUserSavesTable()
+  .catch((error) => {
+    console.error('Failed to ensure user_saves table exists:', error);
+  })
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Woodshed web running at http://localhost:${PORT}`);
+      console.log(`Using Woodshed API: ${API_BASE_URL}`);
+      console.log(pgPool ? 'Persistence: Postgres (DATABASE_URL set)' : 'Persistence: in-memory (no DATABASE_URL)');
+    });
+  });
