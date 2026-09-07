@@ -18,6 +18,25 @@ if (form) {
   const terms = (value) => normalize(value).split(/\s+/).filter((term) => term.length > 1 && !stopWords.has(term));
   const stem = (term) => term.replace(/(ies|ing|ed|es|s)$/, (ending) => ending === "ies" ? "y" : "");
   const date = (value) => new Date(value).toLocaleDateString("en-US", { year: "numeric", month: "long", timeZone: "UTC" });
+  const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+  const highlight = (value, query) => {
+    const escapedValue = escapeHtml(value || "");
+    const queryWords = [...new Set(normalize(query).split(/\s+/).filter(Boolean))]
+      .sort((left, right) => right.length - left.length)
+      .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    if (!queryWords.length) return escapedValue;
+    return escapedValue.replace(new RegExp(`(${queryWords.join("|")})`, "gi"), "<mark>$1</mark>");
+  };
+  const highlightSemantic = (value, query) => {
+    const highlighted = highlight(value, query);
+    return highlighted.includes("<mark>") ? highlighted : `<mark class="semantic-highlight">${highlighted}</mark>`;
+  };
 
   async function loadSiteContent() {
     if (contentLoaded) return contentLoaded;
@@ -34,6 +53,7 @@ if (form) {
   function keywordScore(page, queryTerms) {
     const fields = [
       [page.title, 12],
+      [page.keywords.join(" "), 10],
       [page.tags.join(" "), 9],
       [page.description, 6],
       [page.body, 1],
@@ -47,21 +67,21 @@ if (form) {
     }, 0);
   }
 
-  function renderResults(ranked, label, statusText) {
+  function renderResults(ranked, label, statusText, query = "") {
     results.innerHTML = ranked.map((page) => `
       <article class="search-result">
-        <div class="post-list-title"><a href="${page.url}">${page.title}</a></div>
+        <div class="post-list-title"><a href="${page.url}">${highlight(page.title, query)}</a></div>
         ${page.date ? `<div class="post-list-date">${date(page.date)}</div>` : ""}
-        <p class="post-list-desc">${page.description}</p>
-        ${page.tags.length ? `<div class="tag-row">${page.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}</div>` : ""}
+        <p class="post-list-desc">${highlight(page.description, query)}</p>
+        ${page.semanticMatch ? `<p class="search-match"><span>Related passage</span> ${highlightSemantic(page.semanticMatch, query)}</p>` : ""}
+        ${page.tags.length ? `<div class="tag-row">${page.tags.map((tag) => `<span class="tag">${highlight(tag, query)}</span>`).join("")}</div>` : ""}
       </article>
     `).join("");
     meta.textContent = statusText || `${ranked.length} ${label}${ranked.length === 1 ? "" : "s"}`;
     empty.hidden = ranked.length > 0;
   }
 
-  function keywordResults(query) {
-    const queryTerms = terms(query);
+  function keywordMatchesForQuery(queryTerms) {
     if (!queryTerms.length) return [];
 
     return pages.map((page) => ({ page, score: keywordScore(page, queryTerms) }))
@@ -70,7 +90,12 @@ if (form) {
       .map((result) => result.page);
   }
 
+  function keywordResults(query) {
+    return keywordMatchesForQuery(terms(query));
+  }
+
   function renderKeywordResults(query) {
+    pages.forEach((page) => delete page.semanticMatch);
     const ranked = keywordResults(query);
     if (!ranked.length) {
       results.innerHTML = "";
@@ -78,11 +103,11 @@ if (form) {
       meta.textContent = "Type to search, or press Search for semantic results";
       return;
     }
-    renderResults(ranked, "keyword result");
+    renderResults(ranked, "keyword result", undefined, query);
   }
 
   function chunksFor(page) {
-    const text = [page.title, page.description, page.tags.join(" "), page.body].join("\n");
+    const text = [page.title, page.keywords.join(" "), page.description, page.tags.join(" "), page.body].join("\n");
     const chunks = [];
     for (let start = 0; start < text.length; start += 1400) chunks.push(text.slice(start, start + 1600));
     return chunks;
@@ -99,7 +124,8 @@ if (form) {
       embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { dtype: "q8" });
       await Promise.all(pages.map(async (page) => {
         page.embeddings = [];
-        for (const chunk of chunksFor(page)) {
+        page.searchChunks = chunksFor(page);
+        for (const chunk of page.searchChunks) {
           const output = await embedder(chunk, { pooling: "mean", normalize: true });
           page.embeddings.push(Array.from(output.data));
         }
@@ -120,17 +146,26 @@ if (form) {
       await initializeSemanticSearch();
       const query = await embedder(input.value, { pooling: "mean", normalize: true });
       const queryVector = Array.from(query.data);
-      const semanticResults = pages.map((page) => ({
-        page,
-        score: Math.max(...page.embeddings.map((embedding) => similarity(queryVector, embedding))),
-      }))
-        .filter((result) => result.score > 0.25)
+      const semanticResults = pages.map((page) => {
+        const scores = page.embeddings.map((embedding) => similarity(queryVector, embedding));
+        const bestChunk = scores.indexOf(Math.max(...scores));
+        page.semanticMatch = page.searchChunks[bestChunk].replace(/\s+/g, " ").trim();
+        return { page, score: scores[bestChunk] };
+      });
+      const queryTerms = terms(input.value);
+      const hasExactMetadataMatch = keywordMatchesForQuery(queryTerms).some((page) => {
+        const metadata = terms(`${page.title} ${page.tags.join(" ")}`);
+        return queryTerms.some((term) => metadata.includes(stem(term)));
+      });
+      const semanticThreshold = hasExactMetadataMatch ? 0.55 : 0.4;
+      const rankedSemanticResults = semanticResults
+        .filter((result) => result.score > semanticThreshold)
         .sort((a, b) => b.score - a.score)
         .map((result) => result.page);
-      const keywordMatches = keywordResults(input.value);
+      const keywordMatches = keywordMatchesForQuery(queryTerms);
       const keywordUrls = new Set(keywordMatches.map((page) => page.url));
-      const semanticOnly = semanticResults.filter((page) => !keywordUrls.has(page.url));
-      renderResults([...keywordMatches, ...semanticOnly], "result");
+      const semanticOnly = rankedSemanticResults.filter((page) => !keywordUrls.has(page.url));
+      renderResults([...keywordMatches, ...semanticOnly], "result", undefined, input.value);
     } catch {
       meta.textContent = "Semantic search could not complete. Please try again.";
     } finally {

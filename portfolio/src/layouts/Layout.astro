@@ -13,9 +13,10 @@ const {
 
 const base = import.meta.env.BASE_URL.endsWith("/") ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + "/";
 const posts = await getCollection("writing", ({ data }) => !data.draft);
-const sitePages = searchablePages.map(([title, path, description]) => ({
+const sitePages = searchablePages.map(([title, path, description, keywords]) => ({
   title,
   description,
+  keywords,
   tags: [],
   body: "",
   date: "",
@@ -25,6 +26,7 @@ const sitePages = searchablePages.map(([title, path, description]) => ({
 const writingIndex = posts.map((post) => ({
   title: post.data.title,
   description: post.data.description,
+  keywords: post.data.tags ?? [],
   tags: post.data.tags ?? [],
   body: post.body,
   date: post.data.pubDate.toISOString(),
