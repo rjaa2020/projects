@@ -115,22 +115,19 @@ function normalizeUserName(value) {
   return String(value || '').trim().slice(0, 40);
 }
 
+// In-memory only: named saves live for the lifetime of this server process
+// (current session/deployment), never written to disk.
+const IN_MEMORY_USER_SAVES = {};
+
 async function readUserSaves() {
-  try {
-    const raw = await fs.readFile(USER_SAVE_FILE, 'utf8');
-    const parsed = JSON.parse(raw);
-    return plainObject(parsed);
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return {};
-    }
-    throw error;
-  }
+  return IN_MEMORY_USER_SAVES;
 }
 
 async function writeUserSaves(saves) {
-  await fs.mkdir(path.dirname(USER_SAVE_FILE), { recursive: true });
-  await fs.writeFile(USER_SAVE_FILE, JSON.stringify(saves, null, 2), 'utf8');
+  for (const key of Object.keys(IN_MEMORY_USER_SAVES)) {
+    delete IN_MEMORY_USER_SAVES[key];
+  }
+  Object.assign(IN_MEMORY_USER_SAVES, saves);
 }
 
 function isValidPrompt(prompt) {

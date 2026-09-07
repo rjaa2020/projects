@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: woodshed
+    runtime: docker
+    plan: free
+    rootDir: Woodshed
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: WOODSHED_SESSION_SECRET
+        generateValue: true
