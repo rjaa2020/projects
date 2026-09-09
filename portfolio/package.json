@@ -6,10 +6,18 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
     "astro": "^4.16.0"
+  },
+  "devDependencies": {
+    "@vitest/ui": "^5.0.0",
+    "happy-dom": "^20.14.3",
+    "vitest": "^5.0.0"
   }
 }

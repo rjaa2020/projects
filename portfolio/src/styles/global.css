@@ -164,6 +164,15 @@ header.site-header nav a:hover {
   font-weight: 600;
 }
 
+.search-popover .search-context {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .search-popover .tag-row {
   margin-top: 6px;
 }

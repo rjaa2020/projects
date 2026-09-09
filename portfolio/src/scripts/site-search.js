@@ -1,6 +1,9 @@
 const form = document.getElementById("search-form");
 
 if (form) {
+  const synonymGroups = [
+    ["ngo", "nonprofit", "non-profit"],
+  ];
   const pages = JSON.parse(form.dataset.searchIndex);
   const input = document.getElementById("search-input");
   const button = form.querySelector("button");
@@ -17,6 +20,7 @@ if (form) {
   const normalize = (value) => value.toLowerCase().replace(/[^a-z0-9\s-]/g, " ");
   const terms = (value) => normalize(value).split(/\s+/).filter((term) => term.length > 1 && !stopWords.has(term));
   const stem = (term) => term.replace(/(ies|ing|ed|es|s)$/, (ending) => ending === "ies" ? "y" : "");
+  const equivalentTerms = (term) => synonymGroups.find((group) => group.includes(term)) || [term];
   const date = (value) => new Date(value).toLocaleDateString("en-US", { year: "numeric", month: "long", timeZone: "UTC" });
   const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
     "&": "&amp;",
@@ -25,17 +29,28 @@ if (form) {
     '"': "&quot;",
     "'": "&#39;",
   })[character]);
-  const highlight = (value, query) => {
+  const highlightExact = (value, query) => {
     const escapedValue = escapeHtml(value || "");
-    const queryWords = [...new Set(normalize(query).split(/\s+/).filter(Boolean))]
+    const queryWords = [...new Set(terms(query).flatMap(equivalentTerms))]
       .sort((left, right) => right.length - left.length)
       .map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
     if (!queryWords.length) return escapedValue;
-    return escapedValue.replace(new RegExp(`(${queryWords.join("|")})`, "gi"), "<mark>$1</mark>");
+    return escapedValue.replace(new RegExp(`\\b(${queryWords.join("|")})\\b`, "gi"), "<mark>$1</mark>");
   };
   const highlightSemantic = (value, query) => {
-    const highlighted = highlight(value, query);
+    const highlighted = highlightExact(value, query);
     return highlighted.includes("<mark>") ? highlighted : `<mark class="semantic-highlight">${highlighted}</mark>`;
+  };
+  const getMatchContext = (page, queryTerms) => {
+    const stemmedTerms = queryTerms.flatMap((term) => equivalentTerms(term).map(stem));
+    const titleTerms = terms(page.title).map(stem);
+    const keywordTerms = terms(page.keywords.join(" ")).map(stem);
+    const tagTerms = terms(page.tags.join(" ")).map(stem);
+    const matchedIn = [];
+    if (stemmedTerms.some((t) => titleTerms.includes(t))) matchedIn.push("title");
+    if (stemmedTerms.some((t) => keywordTerms.includes(t))) matchedIn.push("keywords");
+    if (stemmedTerms.some((t) => tagTerms.includes(t))) matchedIn.push("tags");
+    return matchedIn.length > 0 ? `<div class="search-context">Matched in ${matchedIn.join(", ")}</div>` : "";
   };
 
   async function loadSiteContent() {
@@ -59,10 +74,10 @@ if (form) {
       [page.body, 1],
     ];
     return queryTerms.reduce((total, queryTerm) => {
-      const queryStem = stem(queryTerm);
+      const queryStems = equivalentTerms(queryTerm).map(stem);
       return total + fields.reduce((fieldTotal, [value, weight]) => {
         const fieldTerms = terms(value || "").map(stem);
-        return fieldTotal + (fieldTerms.includes(queryStem) ? weight : 0);
+        return fieldTotal + (queryStems.some((queryStem) => fieldTerms.includes(queryStem)) ? weight : 0);
       }, 0);
     }, 0);
   }
@@ -81,14 +96,17 @@ if (form) {
     return order.map((section) => ({ section, pages: groups.get(section) }));
   }
 
-  function renderResult(page, query) {
+  function renderResult(page, query, showContext = true) {
+    const queryTerms = terms(query);
+    const context = showContext ? getMatchContext(page, queryTerms) : "";
     return `
       <article class="search-result">
-        <div class="post-list-title"><a href="${page.url}">${highlight(page.title, query)}</a></div>
+        <div class="post-list-title"><a href="${page.url}">${highlightExact(page.title, query)}</a></div>
         ${page.date ? `<div class="post-list-date">${date(page.date)}</div>` : ""}
-        <p class="post-list-desc">${highlight(page.description, query)}</p>
+        ${context}
+        <p class="post-list-desc">${highlightExact(page.description, query)}</p>
         ${page.semanticMatch ? `<p class="search-match"><span>Related passage</span> ${highlightSemantic(page.semanticMatch, query)}</p>` : ""}
-        ${page.tags.length ? `<div class="tag-row">${page.tags.map((tag) => `<span class="tag">${highlight(tag, query)}</span>`).join("")}</div>` : ""}
+        ${page.tags.length ? `<div class="tag-row">${page.tags.map((tag) => `<span class="tag">${highlightExact(tag, query)}</span>`).join("")}</div>` : ""}
       </article>
     `;
   }
@@ -98,7 +116,7 @@ if (form) {
     results.innerHTML = groups.map(({ section, pages }) => `
       <div class="search-group">
         <div class="search-group-title">${escapeHtml(section)}</div>
-        ${pages.map((page) => renderResult(page, query)).join("")}
+        ${pages.map((page) => renderResult(page, query, true)).join("")}
       </div>
     `).join("");
     meta.textContent = statusText || `${ranked.length} ${label}${ranked.length === 1 ? "" : "s"}`;
