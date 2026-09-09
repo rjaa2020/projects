@@ -483,13 +483,39 @@ footer.site-footer {
 
 /* ---- origins index + detail pages ---- */
 
+.origins-categories {
+  padding: 44px 0;
+}
+
+.origin-category {
+  padding: 0 0 36px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--line);
+}
+.origin-category:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.origin-shelf {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 2px 14px;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--accent) var(--accent-soft);
+}
+
 .activity-card {
+  flex: 0 0 clamp(260px, 72%, 360px);
   display: block;
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px 20px;
   margin-bottom: 12px;
   color: inherit;
+  scroll-snap-align: start;
 }
 .activity-card:hover {
   border-color: var(--accent);

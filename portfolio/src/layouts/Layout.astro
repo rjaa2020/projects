@@ -56,6 +56,16 @@ const nav = [
   { href: "contact/", label: "Contact" },
 ];
 const path = Astro.url.pathname;
+const relativeHref = (target) => {
+  const current = path.split("/").filter(Boolean);
+  const targetParts = (base + target).split("/").filter(Boolean);
+  const currentDirectory = path.endsWith("/") ? current : current.slice(0, -1);
+  let common = 0;
+  while (common < currentDirectory.length && currentDirectory[common] === targetParts[common]) common += 1;
+  const prefix = "../".repeat(currentDirectory.length - common);
+  const destination = targetParts.slice(common).join("/");
+  return prefix + (destination ? destination + "/" : prefix ? "" : "./");
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -91,7 +101,7 @@ const path = Astro.url.pathname;
           {nav.map((item) => {
             const href = base + item.href;
             const isActive = path === href || (item.href === "" && path === base);
-            return <a href={href} class={isActive ? "active" : ""}>{item.label}</a>;
+            return <a href={relativeHref(item.href)} class={isActive ? "active" : ""}>{item.label}</a>;
           })}
         </nav>
       </div>
@@ -101,7 +111,7 @@ const path = Astro.url.pathname;
     </main>
     <footer class="site-footer">
       <div class="wrap">
-        &copy; {new Date().getFullYear()} Rahul Jain &middot; <a href={base + "contact/"}>Get in touch</a>
+        &copy; {new Date().getFullYear()} Rahul Jain &middot; <a href={relativeHref("contact/")}>Get in touch</a>
       </div>
     </footer>
     <div class="lightbox-overlay" id="lightbox-overlay">
