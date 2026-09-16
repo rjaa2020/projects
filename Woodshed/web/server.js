@@ -5,6 +5,13 @@ const { spawn } = require('child_process');
 const fs = require('fs/promises');
 const { Pool } = require('pg');
 const PgSessionStore = require('connect-pg-simple')(session);
+const {
+  hashPassword,
+  verifyPassword,
+  resolvePasswordForSave,
+  requirePasswordForLoad,
+  createInMemoryUserSaveStore
+} = require('./lib/userSaves');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,10 +39,16 @@ async function ensureUserSavesTable() {
     CREATE TABLE IF NOT EXISTS user_saves (
       name TEXT PRIMARY KEY,
       updated_at TIMESTAMPTZ NOT NULL,
-      state JSONB NOT NULL
+      state JSONB NOT NULL,
+      password_hash TEXT,
+      password_salt TEXT
     )
   `);
+  // Tolerate a table created before password support existed.
+  await pgPool.query('ALTER TABLE user_saves ADD COLUMN IF NOT EXISTS password_hash TEXT');
+  await pgPool.query('ALTER TABLE user_saves ADD COLUMN IF NOT EXISTS password_salt TEXT');
 }
+
 
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -145,26 +158,28 @@ function normalizeUserName(value) {
 }
 
 // In-memory fallback for named saves, used only when DATABASE_URL isn't set.
-const IN_MEMORY_USER_SAVES = {};
+const inMemoryStore = createInMemoryUserSaveStore();
 
 async function readUserSaves() {
   if (!pgPool) {
-    return IN_MEMORY_USER_SAVES;
+    return inMemoryStore.readUserSaves();
   }
-  const { rows } = await pgPool.query('SELECT name, updated_at, state FROM user_saves');
+  const { rows } = await pgPool.query('SELECT name, updated_at, state, password_hash, password_salt FROM user_saves');
   const saves = {};
   for (const row of rows) {
-    saves[row.name] = { updatedAt: row.updated_at.toISOString(), state: row.state };
+    saves[row.name] = {
+      updatedAt: row.updated_at.toISOString(),
+      state: row.state,
+      passwordHash: row.password_hash || null,
+      passwordSalt: row.password_salt || null
+    };
   }
   return saves;
 }
 
 async function writeUserSaves(saves) {
   if (!pgPool) {
-    for (const key of Object.keys(IN_MEMORY_USER_SAVES)) {
-      delete IN_MEMORY_USER_SAVES[key];
-    }
-    Object.assign(IN_MEMORY_USER_SAVES, saves);
+    await inMemoryStore.writeUserSaves(saves);
     return;
   }
   const client = await pgPool.connect();
@@ -173,8 +188,8 @@ async function writeUserSaves(saves) {
     await client.query('DELETE FROM user_saves');
     for (const [name, entry] of Object.entries(saves)) {
       await client.query(
-        'INSERT INTO user_saves (name, updated_at, state) VALUES ($1, $2, $3)',
-        [name, entry.updatedAt, entry.state]
+        'INSERT INTO user_saves (name, updated_at, state, password_hash, password_salt) VALUES ($1, $2, $3, $4, $5)',
+        [name, entry.updatedAt, entry.state, entry.passwordHash || null, entry.passwordSalt || null]
       );
     }
     await client.query('COMMIT');
@@ -263,9 +278,12 @@ async function persistActiveUserState(req) {
   }
 
   const saves = await readUserSaves();
+  const existing = saves[activeUser];
   saves[activeUser] = {
     updatedAt: new Date().toISOString(),
-    state: snapshotSessionState(req)
+    state: snapshotSessionState(req),
+    passwordHash: existing ? existing.passwordHash : null,
+    passwordSalt: existing ? existing.passwordSalt : null
   };
   await writeUserSaves(saves);
 }
@@ -883,11 +901,6 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
   const activeChart = coerceChartQuiz(preferences.chartQuiz);
   const activeChartTitle = activeChart ? activeChart.title : '';
   const instrumentKey = coerceInstrumentKey(preferences.instrumentKey);
-  const savedUserOptions = (Array.isArray(savedUsers) ? savedUsers : [])
-    .map((user) => normalizeUserName(user))
-    .filter(Boolean)
-    .map((user) => `<option value="${escapeHtml(user)}" ${user === activeUser ? 'selected' : ''}>${escapeHtml(user)}</option>`)
-    .join('');
   const safeOverallElapsedSeconds = Number.isFinite(Number(overallElapsedSeconds))
     ? Math.max(0, Number(overallElapsedSeconds))
     : 0;
@@ -897,18 +910,13 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
   const statsPanel = renderStatsPanel({ options, preferences, selectedStat });
   const inlineGraph = renderInlineSelectedStat({ selectedStat, preferences });
   const namedSavePanel = `<form id="namedSaveForm" method="post" action="/user/save" class="named-save-panel" autocomplete="off">
-            <input type="text" name="username" autocomplete="username" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
-            <input type="password" name="password" autocomplete="new-password" tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;" />
             <div class="named-save-ribbon">
               <strong class="named-save-title">Profile</strong>
               <div class="named-save-fields">
                 <label class="sr-only" for="activeUser">User Name</label>
-                <input id="activeUser" name="activeUser" type="text" value="${escapeHtml(activeUser)}" placeholder="User name" maxlength="40" />
-                <label class="sr-only" for="savedUsers">Saved Users</label>
-                <select id="savedUsers" name="savedUsers">
-                  <option value="">Saved users...</option>
-                  ${savedUserOptions}
-                </select>
+                <input id="activeUser" name="activeUser" type="text" value="${escapeHtml(activeUser)}" placeholder="User name" maxlength="40" autocomplete="username" />
+                <label class="sr-only" for="userPassword">Password (optional)</label>
+                <input id="userPassword" name="password" type="password" placeholder="Password (optional)" maxlength="200" autocomplete="current-password" />
               </div>
               <div class="actions named-save-actions">
                 <button type="submit" formaction="/user/load" formmethod="post">Load</button>
@@ -1007,27 +1015,6 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
       document.addEventListener('DOMContentLoaded', () => {
         const forms = document.querySelectorAll('form');
         forms.forEach((form) => form.setAttribute('autocomplete', 'off'));
-        const namedSaveForm = document.getElementById('namedSaveForm');
-        const activeUserInput = document.getElementById('activeUser');
-        const savedUsersSelect = document.getElementById('savedUsers');
-
-        if (savedUsersSelect && namedSaveForm) {
-          savedUsersSelect.addEventListener('change', () => {
-            const selectedUser = String(savedUsersSelect.value || '').trim();
-            if (!selectedUser) {
-              return;
-            }
-
-            if (activeUserInput) {
-              activeUserInput.value = selectedUser;
-            }
-
-            namedSaveForm.action = '/user/load';
-            namedSaveForm.method = 'post';
-            namedSaveForm.submit();
-          });
-        }
-
         const tabButtons = Array.from(document.querySelectorAll('.prefs-tab-button'));
         const tabPanels = Array.from(document.querySelectorAll('.prefs-tab-panel'));
         const activateTab = (targetId) => {
@@ -1344,7 +1331,9 @@ app.post('/user/load', async (req, res) => {
 
     req.session.activeUser = requestedUser;
     const saves = await readUserSaves();
-    const savedState = plainObject(saves[requestedUser]).state;
+    const existingEntry = saves[requestedUser];
+    requirePasswordForLoad(existingEntry, req.body.password);
+    const savedState = plainObject(existingEntry).state;
 
     if (savedState) {
       applySavedStateToSession(req, options, savedState);
@@ -1405,7 +1394,16 @@ app.post('/user/save', async (req, res) => {
       req.session.promptStartedAtMs = Date.now();
     }
 
-    await persistActiveUserState(req);
+    const saves = await readUserSaves();
+    const existingEntry = saves[activeUser];
+    const resolvedPassword = resolvePasswordForSave(existingEntry, req.body.password);
+    saves[activeUser] = {
+      updatedAt: new Date().toISOString(),
+      state: snapshotSessionState(req),
+      passwordHash: resolvedPassword.passwordHash,
+      passwordSalt: resolvedPassword.passwordSalt
+    };
+    await writeUserSaves(saves);
     const refreshedSavedUsers = await listSavedUserNames();
 
     res.send(
@@ -1419,7 +1417,9 @@ app.post('/user/save', async (req, res) => {
         activeUser,
         savedUsers: refreshedSavedUsers,
         overallElapsedSeconds: Number.isFinite(Number(req.session.overallElapsedSeconds)) ? Number(req.session.overallElapsedSeconds) : 0,
-        resultMessage: `Saved progress for ${escapeHtml(activeUser)}.`,
+        resultMessage: resolvedPassword.passwordHash
+          ? `Saved progress for ${escapeHtml(activeUser)} (password-protected).`
+          : `Saved progress for ${escapeHtml(activeUser)}.`,
         resultClass: 'ok'
       })
     );
