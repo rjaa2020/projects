@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from .ireal import get_jazz1460_catalog, get_or_fetch_jazz1460_chart, transpose_quiz_chords_for_instrument
 from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
+from .transcribe import SPEED_PRESETS, TranscribeError, fetch_audio, get_speed_audio_path
 
-app = FastAPI(title="Woodshed API", version="3.2.0")
+app = FastAPI(title="Woodshed API", version="3.3.0")
 
 
 class PromptRequest(BaseModel):
@@ -68,6 +70,17 @@ class CheckResponse(BaseModel):
     chord_quality: str
     updated_scores: dict[str, int]
     updated_attempt_times: dict[str, dict[str, list[float]]]
+
+
+class TranscribeFetchRequest(BaseModel):
+    url: str
+
+
+class TranscribeFetchResponse(BaseModel):
+    video_id: str
+    duration_seconds: float
+    already_cached: bool
+    speed_presets: list[int]
 
 
 @app.get("/health")
@@ -149,6 +162,34 @@ def check_answer(request: CheckRequest) -> CheckResponse:
         updated_scores=_serialize_scores(updated_scores),
         updated_attempt_times=_serialize_attempt_times(updated_attempt_times),
     )
+
+
+@app.post("/transcribe/fetch", response_model=TranscribeFetchResponse)
+def transcribe_fetch(request: TranscribeFetchRequest) -> TranscribeFetchResponse:
+    try:
+        result = fetch_audio(request.url)
+    except TranscribeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return TranscribeFetchResponse(
+        video_id=result.video_id,
+        duration_seconds=result.duration_seconds,
+        already_cached=result.already_cached,
+        speed_presets=list(SPEED_PRESETS),
+    )
+
+
+@app.get("/transcribe/audio/{video_id}")
+def transcribe_audio(video_id: str, speed: int = 100) -> FileResponse:
+    try:
+        audio_path = get_speed_audio_path(video_id, speed)
+    except TranscribeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    if not audio_path.exists():
+        raise HTTPException(status_code=404, detail="Audio not found. Fetch the video first.")
+
+    return FileResponse(audio_path, media_type="audio/wav")
 
 
 def _serialize_scores(scores: dict[tuple[str, str], int]) -> dict[str, int]:

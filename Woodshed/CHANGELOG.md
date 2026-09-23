@@ -7,6 +7,46 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-09-23
+
+### Changed
+- Transcribe is now the app's landing page (`/`); the seventh-chord quiz moved to `/quiz` and is relabeled "Chord Quiz" in the top nav (was "Practice"). `/transcribe` still works as an alias.
+- Switching speed presets in Transcribe now preserves your position in the track and whether it was playing, instead of jumping back to the start.
+- Reworked the Loop & Slow transport controls for clarity: a single play/pause button that reflects actual playback state (icon changes, and updates automatically at end-of-track), current-time/duration labels, and a clearer "Loop this section when it plays through" label.
+- Extended the speed presets down to 10% (100/90/80/70/60/50/40/30/20/10%), for very difficult passages. Below 50% speed, `ffmpeg`'s `atempo` filter is chained across multiple stages internally (it only accepts a single value down to 0.5) — this is invisible to the user and was verified to still scale durations correctly and preserve pitch at every preset.
+
+### Added
+- Added a scrub bar under the waveform in Transcribe for seeking playback directly, instead of only being able to click within the waveform (which is reserved for marking loop regions).
+- Added a spectrogram ("pitch view") below the waveform in Transcribe, to make note onsets/changes and phrase boundaries easier to spot than on the amplitude waveform alone. It can be toggled off if not wanted.
+
+## [3.4.0] - 2026-09-23
+
+### Fixed
+- Fixed incorrect Transcribe speed-preset rendering: `audiostretchy` (used by the previous release) silently quantized output duration for short clips, so several distinct speed presets (e.g. 90/80/70%, and separately 60/50%) rendered to the exact same duration instead of scaling with the requested speed. Replaced it with `ffmpeg`'s `atempo` audio filter, which was verified (via direct duration checks and FFT pitch analysis) to scale correctly per-preset while still preserving pitch. `audiostretchy` is no longer a dependency.
+
+### Added
+- Added a live timestamp display in the Transcribe "Loop & Slow" section: current playback position / total duration, and the start–end–duration of the currently marked loop region, both updating live as you play, drag, or resize.
+- Added a shared, unit-tested time-conversion/formatting module (`web/public/transcribeTime.js`) used by both the waveform UI and its test suite.
+- Added a regression test (`tests/test_transcribe.py`) that renders every speed preset and asserts each produces a distinct, correctly-scaled duration — the exact class of bug fixed above.
+- Added `web/tests/transcribeTime.test.js` covering the new time-conversion/formatting helpers.
+
+## [3.3.0] - 2026-09-23
+
+### Added
+- Added a new Transcribe feature: paste a YouTube URL, browse the video, then mark and name loop regions on a waveform to practice jazz solos phrase by phrase.
+- Added pitch-preserving slow-down for Transcribe loops via fixed speed presets (100/90/80/70/60/50%), rendered once per video and cached.
+- Added a Python `woodshed.transcribe` module: YouTube audio fetch/cache via `yt-dlp`, and speed-preset rendering via `audiostretchy`.
+- Added FastAPI endpoints `POST /transcribe/fetch` and `GET /transcribe/audio/{video_id}` to the Woodshed API.
+- Added a new "Transcribe" page and top navigation link in the web GUI, built with wavesurfer.js for waveform display and drag-to-select loop regions.
+- Added named loop region storage (`web/lib/transcribeStore.js`) using the same Postgres-when-`DATABASE_URL`-is-set / in-memory-otherwise pattern as existing named user saves, so it works both locally and on the current Render deployment.
+- Added `ffmpeg` to the Docker image and to `Launch-Woodshed-Web.bat`'s dependency checks (with winget/choco/scoop auto-install), since `yt-dlp` needs it to extract audio.
+- Added `yt-dlp` and `audiostretchy` to the `web` extra in `pyproject.toml`.
+- Added tests for the transcribe pipeline's pure logic (video ID parsing, speed-preset validation, stretch rendering) and for the loop store (`tests/test_transcribe.py`, `web/tests/transcribeStore.test.js`).
+
+### Known limitations
+- Downloading YouTube audio from a cloud host (e.g. Render) can be blocked by YouTube's bot detection on datacenter IPs; Transcribe fetches are most reliable when run from a locally-launched Woodshed instance. A failed fetch surfaces this in the UI.
+- On Render's free plan there's no persistent disk, so cached audio for Transcribe doesn't survive a redeploy or an idle spin-down; a video's audio simply re-downloads on the next fetch.
+
 ## [3.2.0] - 2026-03-13
 
 ### Added

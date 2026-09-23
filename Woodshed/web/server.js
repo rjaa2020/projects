@@ -12,6 +12,12 @@ const {
   requirePasswordForLoad,
   createInMemoryUserSaveStore
 } = require('./lib/userSaves');
+const {
+  createLoopId,
+  normalizeLoopRegion,
+  createInMemoryLoopStore
+} = require('./lib/transcribeStore');
+const { renderTranscribePage } = require('./transcribePage');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,8 +55,28 @@ async function ensureUserSavesTable() {
   await pgPool.query('ALTER TABLE user_saves ADD COLUMN IF NOT EXISTS password_salt TEXT');
 }
 
+// Named loop regions for the Transcribe feature, keyed by YouTube video ID.
+// Same Postgres-when-available / in-memory-otherwise pattern as user_saves.
+async function ensureLoopRegionsTable() {
+  if (!pgPool) {
+    return;
+  }
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS loop_regions (
+      id TEXT PRIMARY KEY,
+      video_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      start_seconds DOUBLE PRECISION NOT NULL,
+      end_seconds DOUBLE PRECISION NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL
+    )
+  `);
+  await pgPool.query('CREATE INDEX IF NOT EXISTS loop_regions_video_id_idx ON loop_regions (video_id)');
+}
+
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(
   session({
     store: pgPool
@@ -199,6 +225,54 @@ async function writeUserSaves(saves) {
   } finally {
     client.release();
   }
+}
+
+// In-memory fallback for loop regions, used only when DATABASE_URL isn't set.
+const inMemoryLoopStore = createInMemoryLoopStore();
+
+async function readLoops(videoId) {
+  if (!pgPool) {
+    return inMemoryLoopStore.readLoops(videoId);
+  }
+  const { rows } = await pgPool.query(
+    'SELECT id, video_id, name, start_seconds, end_seconds, updated_at FROM loop_regions WHERE video_id = $1 ORDER BY start_seconds ASC',
+    [videoId]
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    videoId: row.video_id,
+    name: row.name,
+    startSeconds: row.start_seconds,
+    endSeconds: row.end_seconds,
+    updatedAt: row.updated_at.toISOString()
+  }));
+}
+
+async function saveLoop(videoId, rawLoop) {
+  const normalized = normalizeLoopRegion(rawLoop);
+  if (!pgPool) {
+    return inMemoryLoopStore.saveLoop(videoId, rawLoop);
+  }
+  const id = (rawLoop && rawLoop.id) || createLoopId();
+  const updatedAt = new Date().toISOString();
+  await pgPool.query(
+    `INSERT INTO loop_regions (id, video_id, name, start_seconds, end_seconds, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (id) DO UPDATE SET
+       name = EXCLUDED.name,
+       start_seconds = EXCLUDED.start_seconds,
+       end_seconds = EXCLUDED.end_seconds,
+       updated_at = EXCLUDED.updated_at`,
+    [id, videoId, normalized.name, normalized.startSeconds, normalized.endSeconds, updatedAt]
+  );
+  return { id, videoId, ...normalized, updatedAt };
+}
+
+async function deleteLoop(videoId, loopId) {
+  if (!pgPool) {
+    return inMemoryLoopStore.deleteLoop(videoId, loopId);
+  }
+  await pgPool.query('DELETE FROM loop_regions WHERE id = $1 AND video_id = $2', [loopId, videoId]);
 }
 
 function isValidPrompt(prompt) {
@@ -977,6 +1051,10 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
     <main class="container">
       <h1>Woodshed</h1>
       <p class="subtitle">Seventh Chord Note Trainer</p>
+      <nav class="top-nav">
+        <a href="/quiz" class="active">Chord Quiz</a>
+        <a href="/">Transcribe</a>
+      </nav>
       ${namedSavePanel}
 
       <div class="app-layout">
@@ -995,7 +1073,7 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
 
               <div class="actions">
                 <button type="submit">Submit</button>
-                <a class="link-btn" href="/">Restart</a>
+                <a class="link-btn" href="/quiz">Restart</a>
               </div>
             </div>
           </form>
@@ -1155,7 +1233,11 @@ function renderMainPage({ prompt, score, round, resultMessage, resultClass, opti
 </html>`;
 }
 
-app.get('/', async (req, res) => {
+app.get('/', (req, res) => {
+  res.send(renderTranscribePage());
+});
+
+app.get('/quiz', async (req, res) => {
   try {
     const options = await callApi('/options');
     const savedUsers = await listSavedUserNames();
@@ -1474,14 +1556,14 @@ app.post('/preferences', async (req, res) => {
 });
 
 app.get('/stats', async (req, res) => {
-  res.redirect('/');
+  res.redirect('/quiz');
 });
 
 app.get('/select-stat', async (req, res) => {
   try {
     const currentPrompt = req.session.prompt;
     if (!currentPrompt || !Array.isArray(currentPrompt.notes) || !currentPrompt.symbol) {
-      res.redirect('/');
+      res.redirect('/quiz');
       return;
     }
 
@@ -1598,7 +1680,7 @@ app.post('/check', async (req, res) => {
   try {
     const currentPrompt = req.session.prompt;
     if (!currentPrompt || !Array.isArray(currentPrompt.notes) || !currentPrompt.symbol) {
-      res.redirect('/');
+      res.redirect('/quiz');
       return;
     }
 
@@ -1713,9 +1795,68 @@ app.post('/quit', async (req, res) => {
   }, 150);
 });
 
-ensureUserSavesTable()
+app.get('/transcribe', (req, res) => {
+  res.send(renderTranscribePage());
+});
+
+app.post('/transcribe/fetch', async (req, res) => {
+  try {
+    const result = await callApi('/transcribe/fetch', { url: req.body.url });
+    res.json(result);
+  } catch (error) {
+    res.status(422).json({ error: error.message });
+  }
+});
+
+app.get('/transcribe/audio/:videoId', async (req, res) => {
+  const speed = Number(req.query.speed) || 100;
+  try {
+    const upstream = await fetch(
+      `${API_BASE_URL}/transcribe/audio/${encodeURIComponent(req.params.videoId)}?speed=${encodeURIComponent(speed)}`
+    );
+    if (!upstream.ok) {
+      const text = await upstream.text();
+      res.status(upstream.status).send(text);
+      return;
+    }
+    const buffer = Buffer.from(await upstream.arrayBuffer());
+    res.set('Content-Type', upstream.headers.get('content-type') || 'audio/wav');
+    res.send(buffer);
+  } catch (error) {
+    res.status(502).send(`Failed to stream audio: ${error.message}`);
+  }
+});
+
+app.get('/transcribe/loops/:videoId', async (req, res) => {
+  try {
+    const loops = await readLoops(req.params.videoId);
+    res.json({ loops });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/transcribe/loops/:videoId', async (req, res) => {
+  try {
+    const loop = await saveLoop(req.params.videoId, req.body || {});
+    res.json({ loop });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/transcribe/loops/:videoId/:loopId/delete', async (req, res) => {
+  try {
+    await deleteLoop(req.params.videoId, req.params.loopId);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+Promise.all([ensureUserSavesTable(), ensureLoopRegionsTable()])
   .catch((error) => {
-    console.error('Failed to ensure user_saves table exists:', error);
+    console.error('Failed to ensure database tables exist:', error);
   })
   .finally(() => {
     app.listen(PORT, () => {

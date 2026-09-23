@@ -83,6 +83,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
+call :ensure_ffmpeg
+if errorlevel 1 (
+  pause
+  exit /b 1
+)
+
 powershell -ExecutionPolicy Bypass -File "%ROOT_DIR%scripts\restart-woodshed.ps1" -ApiPort %API_PORT% -WebPort %WEB_PORT%
 if errorlevel 1 (
   echo Failed to reset prior Woodshed processes.
@@ -268,10 +274,20 @@ if "%FORCE_LAUNCH%"=="1" (
     )
   )
 
+  "%VENV_PY%" -c "import yt_dlp" >nul 2>&1
+  if errorlevel 1 (
+    echo Missing Transcribe feature dependencies. Installing missing packages...
+    "%VENV_PY%" -m pip install yt-dlp
+    if errorlevel 1 (
+      echo Failed to install Transcribe feature dependencies.
+      exit /b 1
+    )
+  )
+
   exit /b 0
 )
 
-"%VENV_PY%" -c "import woodshed, fastapi, uvicorn" >nul 2>&1
+"%VENV_PY%" -c "import woodshed, fastapi, uvicorn, yt_dlp" >nul 2>&1
 if not errorlevel 1 (
   echo Python package installation found. Skipping pip install.
   exit /b 0
@@ -300,12 +316,60 @@ if errorlevel 1 (
   )
 )
 
-"%VENV_PY%" -c "import woodshed, fastapi, uvicorn" >nul 2>&1
+"%VENV_PY%" -c "import yt_dlp" >nul 2>&1
+if errorlevel 1 (
+  echo Missing Transcribe feature dependencies. Installing missing packages...
+  "%VENV_PY%" -m pip install yt-dlp
+  if errorlevel 1 (
+    echo Failed to install Transcribe feature dependencies.
+    exit /b 1
+  )
+)
+
+"%VENV_PY%" -c "import woodshed, fastapi, uvicorn, yt_dlp" >nul 2>&1
 if errorlevel 1 (
   echo Python package check failed after install.
   exit /b 1
 )
 
+exit /b 0
+
+:ensure_ffmpeg
+where ffmpeg >nul 2>&1
+if not errorlevel 1 exit /b 0
+
+echo ffmpeg not found (needed by the Transcribe feature to extract/render audio). Attempting auto-install via winget/choco/scoop...
+
+where winget >nul 2>&1
+if not errorlevel 1 (
+  winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
+  if not errorlevel 1 goto :ensure_ffmpeg_recheck
+)
+
+where choco >nul 2>&1
+if not errorlevel 1 (
+  choco install ffmpeg -y
+  if not errorlevel 1 goto :ensure_ffmpeg_recheck
+)
+
+where scoop >nul 2>&1
+if not errorlevel 1 (
+  scoop install ffmpeg
+  if not errorlevel 1 goto :ensure_ffmpeg_recheck
+)
+
+echo Could not auto-install ffmpeg with winget/choco/scoop.
+echo Install it manually from https://ffmpeg.org/download.html and ensure it's on PATH.
+echo Transcribe will not work without it; other Woodshed features are unaffected.
+exit /b 1
+
+:ensure_ffmpeg_recheck
+where ffmpeg >nul 2>&1
+if errorlevel 1 (
+  echo ffmpeg install reported success but ffmpeg is still not on PATH.
+  echo You may need to restart this terminal/PC for PATH changes to take effect.
+  exit /b 1
+)
 exit /b 0
 
 :ensure_web_dependencies

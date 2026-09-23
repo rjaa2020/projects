@@ -23,12 +23,13 @@ Ensure the launcher verifies and/or bootstraps, at minimum:
 
 1. **Python runtime** is discoverable (prefer local `.venv`, then fallback bootstrapping command).
 2. **Local virtual environment** exists (auto-create if missing).
-3. **Python packages** needed for web/API are installed (currently `-e .[web]`).
+3. **Python packages** needed for web/API are installed (currently `-e .[web]`, which includes `fastapi`, `uvicorn`, and `yt-dlp`).
 4. **Node.js + npm** commands are available.
 5. **Web dependencies** are installed (`npm run web:install`).
-6. **API health** is confirmed before launching/opening the web app.
-7. **Port assumptions** in launcher match API/web server defaults.
-8. **System package-manager fallbacks** are still correct for Windows.
+6. **ffmpeg** is on PATH (needed by the Transcribe feature: `yt-dlp` uses it to extract audio from YouTube, and `woodshed.transcribe` shells out to it directly to render slowed-down speed presets via the `atempo` filter).
+7. **API health** is confirmed before launching/opening the web app.
+8. **Port assumptions** in launcher match API/web server defaults.
+9. **System package-manager fallbacks** are still correct for Windows.
 
 ## Package-manager policy
 

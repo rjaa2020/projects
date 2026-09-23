@@ -98,6 +98,40 @@ set WOODSHED_SESSION_SECRET=your_secret_here
 npm run web
 ```
 
+## Transcribe (loop & slow down jazz solos)
+
+**Transcribe is the app's landing page** (`/`; also reachable at
+`/transcribe`). The seventh-chord quiz lives at `/quiz`, labeled "Chord
+Quiz" in the top nav. Transcribe is a practice aid for transcribing jazz
+solos: paste a YouTube URL, browse the video to find a solo, then mark and
+name loop regions on a waveform and play them back at a slower speed
+without pitch-shifting.
+
+- Speeds are fixed presets from 100% down to 10% in steps of 10, each
+  rendered once via `ffmpeg`'s pitch-preserving `atempo` audio filter and
+  cached, so switching speed is instant after the first render. Switching
+  speed preserves your position in the track and whether it was playing.
+- A scrub bar under the waveform seeks playback directly (dragging inside
+  the waveform itself is reserved for marking loop regions).
+- A spectrogram ("pitch view") below the waveform makes note onsets/changes
+  and phrase boundaries easier to spot than the amplitude waveform alone;
+  it can be toggled off.
+- Audio is downloaded once per video with `yt-dlp` and cached on disk under
+  `.cache/transcribe/` (gitignored).
+- Named loop regions persist the same way user saves do: Postgres when
+  `DATABASE_URL` is set, in-memory otherwise.
+
+Requires `ffmpeg` on `PATH` (used by `yt-dlp` to extract audio, and directly
+to render each speed preset); the one-click launcher below installs it
+automatically on Windows.
+
+**Known limitations:**
+- YouTube sometimes blocks downloads from datacenter/cloud IPs (including
+  Render's). If a fetch fails on the deployed instance, try it from a
+  locally-launched Woodshed instead — a failed fetch shows this in the UI.
+- Render's free plan has no persistent disk, so cached audio there doesn't
+  survive a redeploy or an idle spin-down; it just re-downloads next time.
+
 ## One-click launch (Windows)
 
 Double-click [Launch-Woodshed-Web.bat](Launch-Woodshed-Web.bat) from the Woodshed folder.
