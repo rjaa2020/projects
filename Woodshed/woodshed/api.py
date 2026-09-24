@@ -9,7 +9,14 @@ from pydantic import BaseModel, Field
 from .ireal import get_jazz1460_catalog, get_or_fetch_jazz1460_chart, transpose_quiz_chords_for_instrument
 from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
-from .transcribe import SPEED_PRESETS, TranscribeError, clear_cache, fetch_audio, get_speed_audio_path
+from .transcribe import (
+    SPEED_PRESETS,
+    TranscribeError,
+    clear_cache,
+    fetch_audio,
+    get_speed_audio_path,
+    save_uploaded_cookies,
+)
 
 
 @asynccontextmanager
@@ -97,6 +104,14 @@ class TranscribeFetchResponse(BaseModel):
     duration_seconds: float
     already_cached: bool
     speed_presets: list[int]
+
+
+class TranscribeCookiesUploadRequest(BaseModel):
+    content: str
+
+
+class TranscribeCookiesUploadResponse(BaseModel):
+    saved: bool
 
 
 @app.get("/health")
@@ -193,6 +208,16 @@ def transcribe_fetch(request: TranscribeFetchRequest) -> TranscribeFetchResponse
         already_cached=result.already_cached,
         speed_presets=list(SPEED_PRESETS),
     )
+
+
+@app.post("/transcribe/cookies", response_model=TranscribeCookiesUploadResponse)
+def transcribe_upload_cookies(request: TranscribeCookiesUploadRequest) -> TranscribeCookiesUploadResponse:
+    try:
+        save_uploaded_cookies(request.content)
+    except TranscribeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return TranscribeCookiesUploadResponse(saved=True)
 
 
 @app.get("/transcribe/audio/{video_id}")

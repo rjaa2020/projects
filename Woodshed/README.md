@@ -130,10 +130,61 @@ automatically on Windows.
 
 **Known limitations:**
 - YouTube sometimes blocks downloads from datacenter/cloud IPs (including
-  Render's). If a fetch fails on the deployed instance, try it from a
-  locally-launched Woodshed instead — a failed fetch shows this in the UI.
+  Render's) with a "Sign in to confirm you're not a bot" error. Configuring
+  `YOUTUBE_COOKIES_FILE` (below) fixes this by authenticating `yt-dlp` as a
+  real account, and so does uploading a cookies.txt directly through the UI
+  when a fetch fails; without either, try the fetch from a locally-launched
+  Woodshed instead — a failed fetch shows this in the UI.
 - Render's free plan has no persistent disk, so cached audio there doesn't
   survive a redeploy or an idle spin-down; it just re-downloads next time.
+
+### Fixing YouTube's "Sign in to confirm you're not a bot" error on Render
+
+YouTube blocks downloads from IPs it recognizes as datacenter/cloud hosting,
+which includes Render's. The fix is to have `yt-dlp` authenticate with
+cookies from a real, logged-in YouTube session. There are two ways to supply
+them:
+
+**Option A — upload through the app (quick, but not persistent).** When a
+fetch fails on the deployed instance, the Transcribe page shows an upload
+box right there. Export your **youtube.com** cookies only (a cookie-export
+browser extension like "Get cookies.txt LOCALLY" can filter to just that
+site — nothing else is needed) to a `cookies.txt` file and upload it, then
+try the fetch again. This needs no Render dashboard access, but the
+uploaded file lives on the same disk as everything else Transcribe caches:
+it disappears the moment the Render instance restarts, redeploys, or spins
+down after being idle, so you'll need to re-upload it again after any of
+those.
+
+**Option B — a Render Secret File (persistent).**
+
+1. In a browser where you're logged into YouTube, use a cookie-export
+   extension (e.g. "Get cookies.txt LOCALLY") to export your YouTube cookies
+   in Netscape format to a `cookies.txt` file.
+2. In the Render dashboard, open your service → **Environment** → **Secret
+   Files**, and add a secret file with that `cookies.txt` content. Render
+   mounts secret files at `/etc/secrets/<filename>`, so a file named
+   `cookies.txt` is available at `/etc/secrets/cookies.txt`.
+3. Add an environment variable `YOUTUBE_COOKIES_FILE` set to that mounted
+   path (e.g. `/etc/secrets/cookies.txt`) and redeploy.
+
+This survives restarts/redeploys/spin-downs, unlike Option A. If both are
+set up, the `YOUTUBE_COOKIES_FILE` Secret File takes priority; the uploaded
+cookies file is only used as a fallback when it isn't configured (or its
+path doesn't exist).
+
+Either way, only the cookies file's path or content is ever touched — cookie
+contents are never logged or embedded in error messages.
+
+Tradeoffs to know about:
+- Exported cookies expire periodically (often after some weeks), so a
+  download failure after this has been working for a while usually means
+  re-exporting a fresh `cookies.txt` and re-uploading or re-adding it.
+- Using your own account's cookies for automated downloads carries a small
+  risk of YouTube flagging that account for unusual activity. Consider using
+  a secondary/throwaway Google account rather than your primary one.
+- Without either option configured, Transcribe falls back to the previous
+  unauthenticated behavior (which may hit the bot-check on cloud IPs).
 
 ## One-click launch (Windows)
 

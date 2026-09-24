@@ -37,6 +37,22 @@ function renderTranscribePage() {
         </form>
         <p id="fetchStatus" class="footer-note"></p>
 
+        <div id="cookiesUploadSection" hidden>
+          <p class="footer-note">
+            If that failed because YouTube is blocking this server ("Sign in to
+            confirm you're not a bot"), upload a YouTube cookies.txt to authenticate
+            as your account. Export only your <strong>youtube.com</strong> cookies
+            (a browser extension like "Get cookies.txt LOCALLY" can filter to just
+            that site) — nothing else is needed. This isn't stored anywhere
+            persistent, so it'll need re-uploading if this app restarts.
+          </p>
+          <div class="actions">
+            <input type="file" id="cookiesFileInput" accept=".txt" />
+            <button type="button" id="uploadCookiesButton">Upload cookies.txt</button>
+          </div>
+          <p id="cookiesUploadStatus" class="footer-note"></p>
+        </div>
+
         <div id="browseSection" hidden>
           <h2>Browse</h2>
           <p class="footer-note">Find the solo you want to transcribe, then switch to the loop/slow view below. Audio here plays through YouTube; it's just for finding your spot.</p>
@@ -87,6 +103,10 @@ function renderTranscribePage() {
         const fetchForm = document.getElementById('fetchForm');
         const fetchButton = document.getElementById('fetchButton');
         const fetchStatus = document.getElementById('fetchStatus');
+        const cookiesUploadSection = document.getElementById('cookiesUploadSection');
+        const cookiesFileInput = document.getElementById('cookiesFileInput');
+        const uploadCookiesButton = document.getElementById('uploadCookiesButton');
+        const cookiesUploadStatus = document.getElementById('cookiesUploadStatus');
         const browseSection = document.getElementById('browseSection');
         const browseFrame = document.getElementById('browseFrame');
         const startLoopingButton = document.getElementById('startLoopingButton');
@@ -207,13 +227,42 @@ function renderTranscribePage() {
             fetchStatus.textContent = payload.already_cached
               ? 'Already downloaded — ready to go.'
               : 'Downloaded and cached.';
+            cookiesUploadSection.hidden = true;
             browseFrame.src = 'https://www.youtube.com/embed/' + encodeURIComponent(currentVideoId);
             browseSection.hidden = false;
             loopSection.hidden = true;
           } catch (error) {
             fetchStatus.textContent = error.message;
+            cookiesUploadSection.hidden = false;
           } finally {
             fetchButton.disabled = false;
+          }
+        });
+
+        uploadCookiesButton.addEventListener('click', async () => {
+          const file = cookiesFileInput.files[0];
+          if (!file) {
+            cookiesUploadStatus.textContent = 'Choose a cookies.txt file first.';
+            return;
+          }
+          uploadCookiesButton.disabled = true;
+          cookiesUploadStatus.textContent = 'Uploading...';
+          try {
+            const content = await file.text();
+            const response = await fetch('/transcribe/cookies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content })
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+              throw new Error(payload.error || 'Failed to upload cookies.');
+            }
+            cookiesUploadStatus.textContent = 'Cookies uploaded — try fetching the video again.';
+          } catch (error) {
+            cookiesUploadStatus.textContent = error.message;
+          } finally {
+            uploadCookiesButton.disabled = false;
           }
         });
 

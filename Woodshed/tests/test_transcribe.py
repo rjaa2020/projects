@@ -192,6 +192,86 @@ def test_clear_cache_is_safe_to_call_again_with_nothing_left(tmp_path, monkeypat
     assert second.bytes_freed == 0
 
 
+def test_cookies_file_path_is_none_when_env_var_unset(monkeypatch):
+    monkeypatch.delenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, raising=False)
+    assert transcribe._cookies_file_path() is None
+
+
+def test_cookies_file_path_is_none_when_configured_file_does_not_exist(tmp_path, monkeypatch):
+    missing_path = tmp_path / "cookies.txt"
+    monkeypatch.setenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, str(missing_path))
+    assert transcribe._cookies_file_path() is None
+
+
+def test_cookies_file_path_returns_path_when_configured_file_exists(tmp_path, monkeypatch):
+    cookies_path = tmp_path / "cookies.txt"
+    cookies_path.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, str(cookies_path))
+    assert transcribe._cookies_file_path() == cookies_path
+
+
+def test_build_ydl_opts_omits_cookiefile_when_not_configured(tmp_path):
+    opts = transcribe._build_ydl_opts(tmp_path, cookies_file=None)
+    assert "cookiefile" not in opts
+
+
+def test_build_ydl_opts_includes_cookiefile_when_configured(tmp_path):
+    cookies_path = tmp_path / "cookies.txt"
+    cookies_path.write_text("# Netscape HTTP Cookie File\n")
+    opts = transcribe._build_ydl_opts(tmp_path, cookies_file=cookies_path)
+    assert opts["cookiefile"] == str(cookies_path)
+
+
+def test_save_uploaded_cookies_rejects_empty_content(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", tmp_path / "uploaded_youtube_cookies.txt")
+    with pytest.raises(transcribe.TranscribeError, match="empty"):
+        transcribe.save_uploaded_cookies("   ")
+
+
+def test_save_uploaded_cookies_rejects_content_without_youtube_domain(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", tmp_path / "uploaded_youtube_cookies.txt")
+    with pytest.raises(transcribe.TranscribeError, match="doesn't look like"):
+        transcribe.save_uploaded_cookies("# Netscape HTTP Cookie File\nexample.com\tTRUE\t/\tFALSE\t0\tfoo\tbar\n")
+
+
+def test_save_uploaded_cookies_rejects_oversized_content(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", tmp_path / "uploaded_youtube_cookies.txt")
+    oversized = "youtube.com\t" + ("x" * (transcribe.MAX_UPLOADED_COOKIES_BYTES + 1))
+    with pytest.raises(transcribe.TranscribeError, match="too large"):
+        transcribe.save_uploaded_cookies(oversized)
+
+
+def test_save_uploaded_cookies_writes_valid_content_to_disk(tmp_path, monkeypatch):
+    uploaded_path = tmp_path / "uploaded_youtube_cookies.txt"
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", uploaded_path)
+    content = "# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc123\n"
+
+    transcribe.save_uploaded_cookies(content)
+
+    assert uploaded_path.read_text(encoding="utf-8") == content
+
+
+def test_cookies_file_path_falls_back_to_uploaded_file_when_env_var_unset(tmp_path, monkeypatch):
+    uploaded_path = tmp_path / "uploaded_youtube_cookies.txt"
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", uploaded_path)
+    monkeypatch.delenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, raising=False)
+    transcribe.save_uploaded_cookies("youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc123\n")
+
+    assert transcribe._cookies_file_path() == uploaded_path
+
+
+def test_cookies_file_path_prefers_env_var_over_uploaded_file(tmp_path, monkeypatch):
+    uploaded_path = tmp_path / "uploaded_youtube_cookies.txt"
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", uploaded_path)
+    transcribe.save_uploaded_cookies("youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc123\n")
+
+    configured_path = tmp_path / "configured_cookies.txt"
+    configured_path.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, str(configured_path))
+
+    assert transcribe._cookies_file_path() == configured_path
+
+
 def _write_tone_wav(path, seconds, frame_rate=22050, frequency=220.0):
     """Write a synthetic sine-tone WAV (not silence) at the given path.
 

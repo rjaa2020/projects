@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.9.0] - 2026-09-24
+
+### Added
+- Added a way to upload a YouTube cookies.txt directly through the Transcribe UI, as a no-dashboard-access fallback for the "Sign in to confirm you're not a bot" error added in 3.8.0. When a fetch fails, the page now shows an upload box; the file is validated (non-empty, contains youtube.com entries, under 256KB) and saved for `yt-dlp` to use on the next fetch. This is explicitly **not persistent** — it's written to the same ephemeral disk as the rest of Transcribe's cache, so it's lost on a Render restart/redeploy/idle spin-down, unlike the `YOUTUBE_COOKIES_FILE` Secret File setup from 3.8.0 (which still takes priority when both are configured). Only youtube.com cookies are needed for this to work.
+
+## [3.8.0] - 2026-09-23
+
+### Added
+- Added optional cookie-based YouTube authentication for Transcribe's audio fetch, to fix "Sign in to confirm you're not a bot" download failures on cloud hosts like Render (YouTube blocks datacenter IPs from downloading without auth). Set the `YOUTUBE_COOKIES_FILE` environment variable to the path of a cookies.txt exported from a logged-in YouTube session (e.g. a Render Secret File) and `yt-dlp` will use it to authenticate. See README.md's Transcribe section for export/setup steps and tradeoffs (cookies expire periodically and need re-exporting). Behavior is unchanged when the variable isn't set.
+
+### Changed
+- Refined the Transcribe fetch-failure error message to distinguish "no cookies configured" (suggests setting `YOUTUBE_COOKIES_FILE` or trying a local instance) from "cookies configured but the download still failed" (suggests the cookies file has expired and needs re-exporting).
+
 ## [3.7.0] - 2026-09-23
 
 ### Added

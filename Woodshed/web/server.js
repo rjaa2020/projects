@@ -1808,6 +1808,15 @@ app.post('/transcribe/fetch', async (req, res) => {
   }
 });
 
+app.post('/transcribe/cookies', async (req, res) => {
+  try {
+    const result = await callApi('/transcribe/cookies', { content: req.body.content });
+    res.json(result);
+  } catch (error) {
+    res.status(422).json({ error: error.message });
+  }
+});
+
 app.get('/transcribe/audio/:videoId', async (req, res) => {
   const speed = Number(req.query.speed) || 100;
   try {

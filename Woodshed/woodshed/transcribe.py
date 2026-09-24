@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -78,6 +79,102 @@ def fetch_audio(url_or_id: str) -> FetchResult:
     return FetchResult(video_id=video_id, duration_seconds=duration_seconds, already_cached=already_cached)
 
 
+YOUTUBE_COOKIES_FILE_ENV = "YOUTUBE_COOKIES_FILE"
+
+# Where a cookies.txt uploaded through the web UI (see save_uploaded_cookies)
+# is written. Deliberately a sibling of CACHE_ROOT, not inside it, so it
+# isn't deleted by clear_cache()'s startup wipe of cached audio — an uploaded
+# cookies file is meant to keep working across fetches within a run, not get
+# thrown away the moment the API restarts. It's still on the same plain disk
+# as everything else Transcribe caches, though: on hosts with ephemeral
+# storage (Render's free plan) it's gone the moment the instance restarts,
+# redeploys, or spins down idle, same as the audio cache. That's a deliberate
+# tradeoff for "no dashboard access needed" simplicity — see
+# YOUTUBE_COOKIES_FILE_ENV / README.md for the persistent alternative (a
+# Render Secret File).
+UPLOADED_COOKIES_PATH = CACHE_ROOT.parent / "uploaded_youtube_cookies.txt"
+
+# Netscape-format cookies.txt files are tiny (a handful of KB even with many
+# cookies); this is a generous ceiling to keep an unauthenticated upload
+# endpoint from being used to write arbitrarily large files to disk.
+MAX_UPLOADED_COOKIES_BYTES = 256 * 1024
+
+
+def _cookies_file_path() -> Path | None:
+    """Return the best available YouTube cookies file path, if any.
+
+    Checked in order:
+    1. The YOUTUBE_COOKIES_FILE environment variable, if set and the file it
+       points at actually exists — typically a Render Secret File or similar,
+       set up once and persistent across restarts.
+    2. A cookies.txt uploaded through the web UI (see save_uploaded_cookies),
+       if present. This is NOT persistent storage (see UPLOADED_COOKIES_PATH)
+       but works without any dashboard access, so it's a reasonable fallback
+       when the environment variable isn't configured.
+
+    Either way, this lets yt-dlp authenticate as a real account, which is
+    what gets past YouTube's "Sign in to confirm you're not a bot" anti-bot
+    check on hosts (like Render) whose IPs it flags. See README.md's
+    Transcribe section for setup instructions.
+
+    Only file paths are ever read from the environment or returned here —
+    cookie contents themselves are never logged or embedded in error
+    messages.
+    """
+    raw_path = os.environ.get(YOUTUBE_COOKIES_FILE_ENV)
+    if raw_path:
+        configured_path = Path(raw_path)
+        if configured_path.is_file():
+            return configured_path
+    if UPLOADED_COOKIES_PATH.is_file():
+        return UPLOADED_COOKIES_PATH
+    return None
+
+
+def save_uploaded_cookies(content: str) -> None:
+    """Save a YouTube cookies.txt uploaded through the web UI.
+
+    This exists as a no-dashboard-access fallback for when a fetch fails on
+    a cloud host due to YouTube's anti-bot check: rather than needing Render
+    dashboard access to set up a Secret File, anyone using the app can export
+    their own YouTube cookies and upload them directly. See
+    UPLOADED_COOKIES_PATH for the important caveat that this is NOT durable
+    storage — it's written to the same ephemeral disk as everything else
+    Transcribe caches, so it needs re-uploading after a restart/redeploy/
+    spin-down on hosts without persistent disk.
+
+    Only youtube.com cookies are needed (and should be exported) — nothing
+    else is used or required.
+    """
+    if len(content.encode("utf-8", errors="ignore")) > MAX_UPLOADED_COOKIES_BYTES:
+        raise TranscribeError("Uploaded cookies file is too large.")
+    if not content.strip():
+        raise TranscribeError("Uploaded cookies file is empty.")
+    if "youtube.com" not in content:
+        raise TranscribeError(
+            "This doesn't look like it contains YouTube cookies (no youtube.com "
+            "entries found). Export cookies from a youtube.com page and try again."
+        )
+
+    UPLOADED_COOKIES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    UPLOADED_COOKIES_PATH.write_text(content, encoding="utf-8")
+
+
+def _build_ydl_opts(cache_dir: Path, cookies_file: Path | None) -> dict:
+    outtmpl = str(cache_dir / "source.%(ext)s")
+    ydl_opts: dict = {
+        "format": "bestaudio/best",
+        "outtmpl": outtmpl,
+        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "wav"}],
+        "quiet": True,
+        "no_warnings": True,
+        "noplaylist": True,
+    }
+    if cookies_file is not None:
+        ydl_opts["cookiefile"] = str(cookies_file)
+    return ydl_opts
+
+
 def _download_audio(video_id: str, destination: Path) -> None:
     try:
         import yt_dlp
@@ -87,26 +184,27 @@ def _download_audio(video_id: str, destination: Path) -> None:
         ) from exc
 
     cache_dir = destination.parent
-    outtmpl = str(cache_dir / "source.%(ext)s")
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": outtmpl,
-        "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "wav"}],
-        "quiet": True,
-        "no_warnings": True,
-        "noplaylist": True,
-    }
+    cookies_file = _cookies_file_path()
+    ydl_opts = _build_ydl_opts(cache_dir, cookies_file)
     url = f"https://www.youtube.com/watch?v={video_id}"
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except Exception as exc:  # yt_dlp raises its own DownloadError subclasses
+        if cookies_file is not None:
+            raise TranscribeError(
+                "Could not download audio for this video, even with YouTube cookies "
+                "configured. The cookies file may have expired — try re-exporting "
+                f"it from a logged-in YouTube session. Original error: {exc}"
+            ) from exc
         raise TranscribeError(
             "Could not download audio for this video. If Woodshed is running on a "
             "cloud host, YouTube sometimes blocks datacenter IPs for downloads — "
-            "try again from a locally-run Woodshed instance. "
-            f"Original error: {exc}"
+            "upload a YouTube cookies.txt (see the upload option below) to "
+            "authenticate as a real account, configure YOUTUBE_COOKIES_FILE for a "
+            "persistent setup (see README.md), or try again from a locally-run "
+            f"Woodshed instance. Original error: {exc}"
         ) from exc
 
     if not destination.exists():
