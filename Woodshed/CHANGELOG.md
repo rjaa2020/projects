@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.9.2] - 2026-09-24
+
+### Fixed
+- Fixed the 3.9.0 cookie upload actually failing for a real user-reported cookies file: it was in the JSON format several cookie-export tools (Chrome's "Cookie-Editor"/"EditThisCookie" extensions, Chrome DevTools' own export, Puppeteer/Playwright's cookie format) produce by default, rather than the Netscape `cookies.txt` format yt-dlp requires — the upload was accepted (it does contain `youtube.com` text) but yt-dlp couldn't parse it, so the fetch kept failing with a misleading "cookies may have expired" message. `save_uploaded_cookies()` now detects a JSON cookie export and converts it to proper Netscape format (including the `#HttpOnly_` domain-prefix convention for HttpOnly cookies, and `0`/"session" handling for cookies with no expiration), verified against yt-dlp's own cookie-jar loader. Also fixed the upload file picker's `accept` attribute only listing `.txt`, which hid `.json` exports (like the one reported) from being selectable at all — it now accepts both.
+- Slightly clarified the "cookies configured but download still failed" error message to mention a possible parse issue, not just expiry, since that ambiguity is what made this bug harder to diagnose from the error message alone.
+
 ## [3.9.1] - 2026-09-24
 
 ### Changed

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -131,8 +132,65 @@ def _cookies_file_path() -> Path | None:
     return None
 
 
+def _as_json_cookie_list(content: str) -> list[dict] | None:
+    """Return a parsed cookie list if `content` is a JSON cookie export.
+
+    Several cookie-export tools (Chrome's "Cookie-Editor"/"EditThisCookie",
+    Chrome DevTools' own cookie export, Puppeteer/Playwright's cookie
+    format) default to a JSON array of objects with domain/name/value keys,
+    rather than the Netscape cookies.txt format yt-dlp actually needs.
+    Detecting this shape lets save_uploaded_cookies() convert it instead of
+    just rejecting it, since asking the user to hunt for a different export
+    option/extension is often not worth the friction.
+
+    Returns None (not a JSON cookie export — treat `content` as plain text)
+    if the content doesn't parse as JSON, or doesn't look like a list of
+    cookie objects.
+    """
+    stripped = content.strip()
+    if not stripped or stripped[0] not in "[{":
+        return None
+    try:
+        parsed = json.loads(stripped)
+    except (ValueError, TypeError):
+        return None
+    if isinstance(parsed, dict):
+        parsed = [parsed]
+    if not isinstance(parsed, list) or not parsed:
+        return None
+    if not all(isinstance(item, dict) and {"domain", "name", "value"} <= item.keys() for item in parsed):
+        return None
+    return parsed
+
+
+def _json_cookies_to_netscape(cookies: list[dict]) -> str:
+    """Convert a JSON cookie export into Netscape cookies.txt format.
+
+    Only cookies whose domain mentions youtube.com are kept — matching the
+    "export only youtube.com cookies" instructions in the UI, and acting as
+    a safety net if a broader "export all cookies" was used by mistake.
+    """
+    lines = ["# Netscape HTTP Cookie File"]
+    for cookie in cookies:
+        domain = str(cookie.get("domain", ""))
+        name = str(cookie.get("name", ""))
+        if "youtube.com" not in domain or not name:
+            continue
+        include_subdomains = "FALSE" if cookie.get("hostOnly") else "TRUE"
+        path = str(cookie.get("path") or "/")
+        secure = "TRUE" if cookie.get("secure") else "FALSE"
+        if cookie.get("session") or not cookie.get("expirationDate"):
+            expiration = "0"  # 0 means "expires at end of session" in this format
+        else:
+            expiration = str(int(float(cookie["expirationDate"])))
+        value = str(cookie.get("value", ""))
+        domain_field = f"#HttpOnly_{domain}" if cookie.get("httpOnly") else domain
+        lines.append("\t".join([domain_field, include_subdomains, path, secure, expiration, name, value]))
+    return "\n".join(lines) + "\n"
+
+
 def save_uploaded_cookies(content: str) -> None:
-    """Save a YouTube cookies.txt uploaded through the web UI.
+    """Save YouTube cookies uploaded through the web UI.
 
     This exists as a no-dashboard-access fallback for when a fetch fails on
     a cloud host due to YouTube's anti-bot check: rather than needing Render
@@ -143,13 +201,21 @@ def save_uploaded_cookies(content: str) -> None:
     Transcribe caches, so it needs re-uploading after a restart/redeploy/
     spin-down on hosts without persistent disk.
 
-    Only youtube.com cookies are needed (and should be exported) — nothing
-    else is used or required.
+    Accepts either yt-dlp's native Netscape cookies.txt format, or a JSON
+    cookie export (see _as_json_cookie_list) — the latter is converted to
+    Netscape format before being saved, since that's the only format yt-dlp
+    actually reads. Only youtube.com cookies are needed (and should be
+    exported) — nothing else is used or required.
     """
     if len(content.encode("utf-8", errors="ignore")) > MAX_UPLOADED_COOKIES_BYTES:
         raise TranscribeError("Uploaded cookies file is too large.")
     if not content.strip():
         raise TranscribeError("Uploaded cookies file is empty.")
+
+    json_cookies = _as_json_cookie_list(content)
+    if json_cookies is not None:
+        content = _json_cookies_to_netscape(json_cookies)
+
     if "youtube.com" not in content:
         raise TranscribeError(
             "This doesn't look like it contains YouTube cookies (no youtube.com "
@@ -195,8 +261,9 @@ def _download_audio(video_id: str, destination: Path) -> None:
         if cookies_file is not None:
             raise TranscribeError(
                 "Could not download audio for this video, even with YouTube cookies "
-                "configured. The cookies file may have expired — try re-exporting "
-                f"it from a logged-in YouTube session. Original error: {exc}"
+                "configured. Either the cookies have expired (try re-exporting from "
+                "a logged-in YouTube session) or yt-dlp couldn't read the file — "
+                f"double check it's a real export, not an edited copy. Original error: {exc}"
             ) from exc
         raise TranscribeError(
             "Could not download audio for this video. If Woodshed is running on a "

@@ -272,6 +272,89 @@ def test_cookies_file_path_prefers_env_var_over_uploaded_file(tmp_path, monkeypa
     assert transcribe._cookies_file_path() == configured_path
 
 
+# A representative JSON cookie export (the shape Chrome's "Cookie-Editor"/
+# "EditThisCookie" extensions and Chrome DevTools produce, also the shape
+# Puppeteer/Playwright return from page.cookies()) — trimmed from a real
+# user-reported export that yt-dlp couldn't read because it wasn't Netscape
+# format.
+_SAMPLE_JSON_COOKIE_EXPORT = """
+[
+  {"domain": ".youtube.com", "expirationDate": 1824838459.74928, "hostOnly": false,
+   "httpOnly": false, "name": "PREF", "path": "/", "sameSite": "unspecified",
+   "secure": true, "session": false, "storeId": "0", "value": "f6=40000000"},
+  {"domain": ".youtube.com", "expirationDate": 1824771682.194392, "hostOnly": false,
+   "httpOnly": true, "name": "__Secure-1PSID", "path": "/", "sameSite": "unspecified",
+   "secure": true, "session": false, "storeId": "0", "value": "secretvalue123"},
+  {"domain": ".youtube.com", "hostOnly": false, "httpOnly": true, "name": "YSC",
+   "path": "/", "sameSite": "no_restriction", "secure": true, "session": true,
+   "storeId": "0", "value": "VEe1kT3ObNk"},
+  {"domain": ".doubleclick.net", "hostOnly": false, "httpOnly": false, "name": "IDE",
+   "path": "/", "sameSite": "no_restriction", "secure": true, "session": false,
+   "expirationDate": 1824771682.0, "storeId": "0", "value": "unrelated-ad-cookie"}
+]
+"""
+
+
+def test_as_json_cookie_list_recognizes_a_json_cookie_array():
+    parsed = transcribe._as_json_cookie_list(_SAMPLE_JSON_COOKIE_EXPORT)
+    assert parsed is not None
+    assert len(parsed) == 4
+
+
+def test_as_json_cookie_list_returns_none_for_plain_netscape_text():
+    assert transcribe._as_json_cookie_list("youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc123\n") is None
+
+
+def test_as_json_cookie_list_returns_none_for_unrelated_json():
+    assert transcribe._as_json_cookie_list('{"foo": "bar"}') is None
+    assert transcribe._as_json_cookie_list("[1, 2, 3]") is None
+
+
+def test_json_cookies_to_netscape_converts_and_filters_to_youtube_only():
+    cookies = transcribe._as_json_cookie_list(_SAMPLE_JSON_COOKIE_EXPORT)
+    netscape = transcribe._json_cookies_to_netscape(cookies)
+
+    assert netscape.startswith("# Netscape HTTP Cookie File")
+    # The unrelated doubleclick.net cookie must not survive the conversion.
+    assert "doubleclick" not in netscape
+    assert "IDE" not in netscape
+    # A non-HttpOnly cookie is written as a plain 7-field Netscape line.
+    assert "\t.youtube.com\tTRUE\t/\tTRUE\t" in netscape or netscape.count(".youtube.com\tTRUE\t/\tTRUE\t") >= 1
+    # An HttpOnly cookie gets the "#HttpOnly_" domain prefix real cookies.txt
+    # files use, not a plain domain field.
+    assert "#HttpOnly_.youtube.com" in netscape
+    assert "__Secure-1PSID" in netscape
+    # A session cookie (no expirationDate) is written with expiration "0",
+    # meaning "expires at end of session" in this format, not "expired".
+    assert "\tYSC\tVEe1kT3ObNk" in netscape
+    for line in netscape.splitlines()[1:]:
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        assert len(fields) == 7
+
+
+def test_save_uploaded_cookies_accepts_a_json_export(tmp_path, monkeypatch):
+    uploaded_path = tmp_path / "uploaded_youtube_cookies.txt"
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", uploaded_path)
+
+    transcribe.save_uploaded_cookies(_SAMPLE_JSON_COOKIE_EXPORT)
+
+    saved = uploaded_path.read_text(encoding="utf-8")
+    assert saved.startswith("# Netscape HTTP Cookie File")
+    assert "__Secure-1PSID" in saved
+    assert "doubleclick" not in saved
+
+
+def test_save_uploaded_cookies_rejects_json_with_no_youtube_cookies(tmp_path, monkeypatch):
+    uploaded_path = tmp_path / "uploaded_youtube_cookies.txt"
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", uploaded_path)
+    only_ad_cookies = """[{"domain": ".doubleclick.net", "name": "IDE", "value": "x", "path": "/"}]"""
+
+    with pytest.raises(transcribe.TranscribeError, match="doesn't look like"):
+        transcribe.save_uploaded_cookies(only_ad_cookies)
+
+
 def _write_tone_wav(path, seconds, frame_rate=22050, frequency=220.0):
     """Write a synthetic sine-tone WAV (not silence) at the given path.
 

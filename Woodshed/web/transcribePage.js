@@ -63,15 +63,15 @@ function renderTranscribePage() {
               Click the extension's icon, export only the <strong>youtube.com</strong>
               cookies (not "export all"), and save the resulting file.
             </li>
-            <li>Upload that file below.</li>
+            <li>Upload that file below — either a .txt or .json export works.</li>
           </ol>
           <p class="footer-note">
             Only youtube.com cookies are needed — nothing else. This isn't stored
             anywhere persistent, so it'll need re-uploading if this app restarts.
           </p>
           <div class="actions">
-            <input type="file" id="cookiesFileInput" accept=".txt" />
-            <button type="button" id="uploadCookiesButton">Upload cookies.txt</button>
+            <input type="file" id="cookiesFileInput" accept=".txt,.json" />
+            <button type="button" id="uploadCookiesButton">Upload cookies file</button>
           </div>
           <p id="cookiesUploadStatus" class="footer-note"></p>
         </div>
@@ -265,7 +265,7 @@ function renderTranscribePage() {
         uploadCookiesButton.addEventListener('click', async () => {
           const file = cookiesFileInput.files[0];
           if (!file) {
-            cookiesUploadStatus.textContent = 'Choose a cookies.txt file first.';
+            cookiesUploadStatus.textContent = 'Choose a cookies file first.';
             return;
           }
           uploadCookiesButton.disabled = true;

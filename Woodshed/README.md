@@ -147,14 +147,16 @@ them:
 
 **Option A — upload through the app (quick, but not persistent).** When a
 fetch fails on the deployed instance, the Transcribe page shows an upload
-box right there. Export your **youtube.com** cookies only (a cookie-export
-browser extension like "Get cookies.txt LOCALLY" can filter to just that
-site — nothing else is needed) to a `cookies.txt` file and upload it, then
-try the fetch again. This needs no Render dashboard access, but the
-uploaded file lives on the same disk as everything else Transcribe caches:
-it disappears the moment the Render instance restarts, redeploys, or spins
-down after being idle, so you'll need to re-upload it again after any of
-those.
+box with step-by-step instructions, including a direct link to install a
+cookie-export extension ("Get cookies.txt LOCALLY"). Export your
+**youtube.com** cookies only — nothing else is needed — and upload the
+resulting file, then try the fetch again. Both the standard Netscape
+`cookies.txt` format and the JSON format some extensions/DevTools export by
+default are accepted (JSON is converted automatically); either way, this
+needs no Render dashboard access, but the uploaded file lives on the same
+disk as everything else Transcribe caches: it disappears the moment the
+Render instance restarts, redeploys, or spins down after being idle, so
+you'll need to re-upload it again after any of those.
 
 **Option B — a Render Secret File (persistent).**
 
