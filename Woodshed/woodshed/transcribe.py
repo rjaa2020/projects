@@ -235,6 +235,16 @@ def _build_ydl_opts(cache_dir: Path, cookies_file: Path | None) -> dict:
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
+        # YouTube periodically breaks specific internal "player clients"
+        # yt-dlp uses to fetch playable formats (the whole extraction
+        # pipeline is an ongoing arms race between the two), which shows up
+        # as "The page needs to be reloaded" / "playability status:
+        # UNPLAYABLE" — unrelated to cookies or authentication. Explicitly
+        # listing a couple of fallback clients here, rather than relying on
+        # yt-dlp's own default choice, is the documented workaround
+        # (https://github.com/yt-dlp/yt-dlp/issues/17389) until yt-dlp ships
+        # a more permanent fix.
+        "extractor_args": {"youtube": {"player_client": ["default", "web_embedded"]}},
     }
     if cookies_file is not None:
         ydl_opts["cookiefile"] = str(cookies_file)
@@ -258,6 +268,22 @@ def _download_audio(video_id: str, destination: Path) -> None:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except Exception as exc:  # yt_dlp raises its own DownloadError subclasses
+        error_text = str(exc).lower()
+        if "reload" in error_text or "unplayable" in error_text:
+            # A known, ongoing YouTube/yt-dlp compatibility issue (YouTube
+            # changes how it serves playable formats; yt-dlp patches around
+            # it; repeat) — unrelated to cookies/authentication, so don't
+            # send the user chasing a cookie re-export for this one. See
+            # _build_ydl_opts()'s extractor_args, which already works around
+            # the most common cause of this.
+            raise TranscribeError(
+                "YouTube rejected this video's playback data (\"The page needs to be "
+                "reloaded\" / player unplayable). This is a known, ongoing "
+                "compatibility issue between YouTube and yt-dlp, not a cookies or "
+                "authentication problem — it comes and goes as both sides change. "
+                "Try again in a bit, or make sure this Woodshed deployment is "
+                f"running a recent yt-dlp version (pip install -U yt-dlp). Original error: {exc}"
+            ) from exc
         if cookies_file is not None:
             raise TranscribeError(
                 "Could not download audio for this video, even with YouTube cookies "

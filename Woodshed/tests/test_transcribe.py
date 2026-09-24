@@ -222,6 +222,81 @@ def test_build_ydl_opts_includes_cookiefile_when_configured(tmp_path):
     assert opts["cookiefile"] == str(cookies_path)
 
 
+def test_build_ydl_opts_always_includes_player_client_fallback(tmp_path):
+    # Guards against "The page needs to be reloaded" / player-unplayable
+    # errors, a known YouTube/yt-dlp extraction issue unrelated to cookies —
+    # this should apply whether or not cookies are configured.
+    for cookies_file in (None, tmp_path / "cookies.txt"):
+        opts = transcribe._build_ydl_opts(tmp_path, cookies_file=cookies_file)
+        assert opts["extractor_args"]["youtube"]["player_client"] == ["default", "web_embedded"]
+
+
+class _FakeYoutubeDL:
+    """Stand-in for yt_dlp.YoutubeDL that raises a chosen error on download."""
+
+    def __init__(self, error_message):
+        self._error_message = error_message
+
+    def __call__(self, opts):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def download(self, urls):
+        raise RuntimeError(self._error_message)
+
+
+def test_download_audio_gives_a_distinct_message_for_page_needs_reload_error(tmp_path, monkeypatch):
+    import sys
+    import types
+
+    monkeypatch.setattr(transcribe, "CACHE_ROOT", tmp_path)
+    fake_module = types.SimpleNamespace(
+        YoutubeDL=_FakeYoutubeDL(
+            "ERROR: [youtube] abc123: The page needs to be reloaded."
+        )
+    )
+    monkeypatch.setitem(sys.modules, "yt_dlp", fake_module)
+    monkeypatch.delenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, raising=False)
+    monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", tmp_path / "no_upload_here.txt")
+
+    dest = tmp_path / "video" / "source.wav"
+    with pytest.raises(transcribe.TranscribeError) as exc_info:
+        transcribe._download_audio("abc123", dest)
+
+    message = str(exc_info.value)
+    assert "known, ongoing compatibility issue" in message
+    assert "not a cookies or authentication problem" in message
+
+
+def test_download_audio_page_reload_error_takes_priority_even_with_cookies_configured(tmp_path, monkeypatch):
+    import sys
+    import types
+
+    monkeypatch.setattr(transcribe, "CACHE_ROOT", tmp_path)
+    cookies_path = tmp_path / "cookies.txt"
+    cookies_path.write_text("# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t0\tSID\tabc\n")
+    monkeypatch.setenv(transcribe.YOUTUBE_COOKIES_FILE_ENV, str(cookies_path))
+    fake_module = types.SimpleNamespace(
+        YoutubeDL=_FakeYoutubeDL("player response playability status: UNPLAYABLE")
+    )
+    monkeypatch.setitem(sys.modules, "yt_dlp", fake_module)
+
+    dest = tmp_path / "video" / "source.wav"
+    with pytest.raises(transcribe.TranscribeError) as exc_info:
+        transcribe._download_audio("abc123", dest)
+
+    message = str(exc_info.value)
+    # Must NOT get the generic "cookies may have expired" message, even
+    # though cookies are configured — this failure mode is unrelated.
+    assert "expired" not in message
+    assert "known, ongoing compatibility issue" in message
+
+
 def test_save_uploaded_cookies_rejects_empty_content(tmp_path, monkeypatch):
     monkeypatch.setattr(transcribe, "UPLOADED_COOKIES_PATH", tmp_path / "uploaded_youtube_cookies.txt")
     with pytest.raises(transcribe.TranscribeError, match="empty"):

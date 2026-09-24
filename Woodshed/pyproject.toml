@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "woodshed-note-trainer"
-version = "3.9.2"
+version = "3.9.3"
 description = "CLI and module for practicing seventh-chord note naming"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -30,7 +30,7 @@ test = [
 web = [
   "fastapi>=0.115",
   "uvicorn>=0.30",
-  "yt-dlp>=2025.6.9",
+  "yt-dlp>=2026.8.19",
 ]
 
 [tool.setuptools.packages.find]

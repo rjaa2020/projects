@@ -137,6 +137,17 @@ automatically on Windows.
   Woodshed instead — a failed fetch shows this in the UI.
 - Render's free plan has no persistent disk, so cached audio there doesn't
   survive a redeploy or an idle spin-down; it just re-downloads next time.
+- Separately, a fetch can fail with `"The page needs to be reloaded"` or a
+  "player unplayable" message. This is **not** a cookies/authentication
+  problem — it's YouTube periodically changing how it serves playable
+  formats faster than `yt-dlp` can keep up, an ongoing back-and-forth
+  between the two projects. Transcribe already asks `yt-dlp` to fall back to
+  alternate player clients to work around the most common cause of this, but
+  it can still happen. If it does: try again in a bit (this comes and goes),
+  and make sure the deployment is running a recent `yt-dlp` (`pip install -U
+  yt-dlp`, or a fresh Render rebuild rather than one reusing a cached build
+  layer) — `yt-dlp` typically ships a fix within days of YouTube's side
+  changing.
 
 ### Fixing YouTube's "Sign in to confirm you're not a bot" error on Render
 

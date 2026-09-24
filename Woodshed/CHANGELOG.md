@@ -7,6 +7,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.9.3] - 2026-09-24
+
+### Fixed
+- Fixed a real user-reported fetch failure — `ERROR: [youtube] <id>: The page needs to be reloaded.` — that was being misreported as an expired-cookies problem even though it's an unrelated, known YouTube/yt-dlp compatibility issue (YouTube periodically changes how it serves playable formats; yt-dlp patches around it; repeat — see https://github.com/yt-dlp/yt-dlp/issues/17389). `_download_audio()` now recognizes this failure mode ("reload"/"unplayable" in the error text) and gives an accurate explanation instead of pointing at cookies.
+
+### Added
+- Added `extractor_args: {"youtube": {"player_client": ["default", "web_embedded"]}}` to every `yt-dlp` request in `_build_ydl_opts()` — the documented workaround for the most common cause of the "page needs to be reloaded" error, verified against the real `yt-dlp` library.
+- Bumped the minimum `yt-dlp` version in `pyproject.toml` from `2025.6.9` to `2026.8.19` (latest available), since `yt-dlp` ships fixes for these YouTube-side changes frequently and a stale pin (or a Render build reusing a cached layer) can mean running an older version than necessary.
+
 ## [3.9.2] - 2026-09-24
 
 ### Fixed
