@@ -16,7 +16,6 @@ function renderTranscribePage() {
     <link rel="stylesheet" href="/public/styles.css" />
     <script src="https://unpkg.com/wavesurfer.js@7"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
-    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/spectrogram.min.js"></script>
     <script src="/public/transcribeTime.js"></script>
   </head>
   <body>
@@ -51,13 +50,8 @@ function renderTranscribePage() {
 
         <div id="loopSection" hidden>
           <h2>Loop &amp; Slow</h2>
-          <p class="footer-note">Drag on the waveform to mark a phrase. Loop plays it back on repeat; speed presets keep pitch true. The pitch view below the waveform makes note changes and phrase gaps easier to spot than the waveform alone — darker/brighter bands are notes, and the quiet gaps between them are your phrase boundaries.</p>
+          <p class="footer-note">Drag on the waveform to mark a phrase. Loop plays it back on repeat; speed presets keep pitch true.</p>
           <div id="waveform" class="waveform"></div>
-          <div class="control-label-row">
-            <p class="control-label">Pitch view</p>
-            <label class="spectrogram-toggle"><input type="checkbox" id="spectrogramToggle" checked /> Show</label>
-          </div>
-          <div id="spectrogram" class="spectrogram"></div>
 
           <div class="transport">
             <button type="button" id="playPauseButton" class="play-pause-button" aria-label="Play">&#9654;</button>
@@ -108,20 +102,26 @@ function renderTranscribePage() {
         const currentTimeLabel = document.getElementById('currentTimeLabel');
         const durationLabel = document.getElementById('durationLabel');
         const scrubBar = document.getElementById('scrubBar');
-        const spectrogramToggle = document.getElementById('spectrogramToggle');
-        const spectrogramContainer = document.getElementById('spectrogram');
 
         let currentVideoId = null;
         let speedPresets = [100];
         let currentSpeed = 100;
         let wavesurfer = null;
         let regions = null;
-        let spectrogram = null;
         let activeRegion = null;
         // True while the user is actively dragging the scrub bar's thumb, so
         // playback progress (which also drives the scrub bar) doesn't fight
         // the drag.
         let isScrubbing = false;
+
+        // Caches the decoded audio Blob for each speed preset once fetched,
+        // so switching speeds swaps the already-in-memory audio via
+        // wavesurfer.loadBlob() instead of re-fetching over the network and
+        // waiting on a fresh decode — that round trip was the main source of
+        // the "jump" when changing speeds. Cleared whenever a new video is
+        // fetched. Values are Promises so concurrent requests for the same
+        // speed share one fetch instead of racing.
+        let audioBlobCache = new Map();
 
         // Thin wrappers around the shared TranscribeTime module (loaded via
         // <script src="/public/transcribeTime.js">) that close over the
@@ -203,6 +203,7 @@ function renderTranscribePage() {
             }
             currentVideoId = payload.video_id;
             speedPresets = payload.speed_presets || [100];
+            audioBlobCache = new Map();
             fetchStatus.textContent = payload.already_cached
               ? 'Already downloaded — ready to go.'
               : 'Downloaded and cached.';
@@ -226,7 +227,37 @@ function renderTranscribePage() {
           renderSpeedPresets();
           initWaveform(100);
           loadLoopList();
+          prefetchOtherSpeeds();
         });
+
+        // Fetches (and caches) the audio Blob for one speed preset. Reuses an
+        // in-flight or already-resolved fetch for the same speed rather than
+        // starting a new one.
+        function getAudioBlob(speedPercent) {
+          if (!audioBlobCache.has(speedPercent)) {
+            const url = '/transcribe/audio/' + encodeURIComponent(currentVideoId) + '?speed=' + speedPercent;
+            audioBlobCache.set(speedPercent, fetch(url).then((response) => {
+              if (!response.ok) {
+                throw new Error('Failed to load audio for ' + speedPercent + '% speed.');
+              }
+              return response.blob();
+            }));
+          }
+          return audioBlobCache.get(speedPercent);
+        }
+
+        // Warms the cache for every speed preset besides the one already
+        // loaded, in the background, so that switching speeds later is a
+        // local swap instead of a network fetch. Fetch failures here are
+        // silently ignored — switchSpeed() will simply re-fetch (and surface
+        // any real error) on demand if a prefetch didn't pan out.
+        function prefetchOtherSpeeds() {
+          speedPresets.forEach((preset) => {
+            if (preset !== currentSpeed) {
+              getAudioBlob(preset).catch(() => {});
+            }
+          });
+        }
 
         function renderSpeedPresets() {
           speedPresetsEl.innerHTML = '';
@@ -249,26 +280,16 @@ function renderTranscribePage() {
             container: '#waveform',
             waveColor: '#9aa5b1',
             progressColor: '#111827',
-            height: 110,
-            url: '/transcribe/audio/' + encodeURIComponent(currentVideoId) + '?speed=' + speedPercent
+            height: 110
           });
           regions = WaveSurfer.Regions.create();
           wavesurfer.registerPlugin(regions);
 
-          // The spectrogram makes note onsets/changes and phrase gaps far
-          // easier to see than the amplitude waveform alone — pitched notes
-          // show as distinct horizontal bands, and silence between phrases
-          // shows as a dark vertical gap. It re-renders automatically each
-          // time a new speed's audio is loaded via wavesurfer.load().
-          spectrogram = WaveSurfer.Spectrogram.create({
-            container: '#spectrogram',
-            height: 150,
-            labels: true,
-            scale: 'mel',
-            colorMap: 'roseus'
-          });
-          wavesurfer.registerPlugin(spectrogram);
-          spectrogramContainer.style.display = spectrogramToggle.checked ? '' : 'none';
+          getAudioBlob(speedPercent)
+            .then((blob) => wavesurfer.loadBlob(blob))
+            .catch((error) => {
+              loopStatus.textContent = error.message;
+            });
 
           wavesurfer.on('ready', () => {
             regions.enableDragSelection({ color: 'rgba(17, 24, 39, 0.15)' });
@@ -324,7 +345,7 @@ function renderTranscribePage() {
           updateLoopRangeDisplay();
         }
 
-        function switchSpeed(speedPercent) {
+        async function switchSpeed(speedPercent) {
           if (!wavesurfer || speedPercent === currentSpeed) {
             return;
           }
@@ -338,8 +359,19 @@ function renderTranscribePage() {
           const wasPlaying = wavesurfer.isPlaying();
 
           currentSpeed = speedPercent;
-          wavesurfer.load('/transcribe/audio/' + encodeURIComponent(currentVideoId) + '?speed=' + speedPercent);
           renderSpeedPresets();
+
+          let blob;
+          try {
+            // Almost always already resolved by prefetchOtherSpeeds() by the
+            // time the user clicks a preset, so this is normally a local
+            // handoff to loadBlob() rather than a network wait — that's what
+            // removes the jump switching speeds used to have.
+            blob = await getAudioBlob(speedPercent);
+          } catch (error) {
+            loopStatus.textContent = error.message;
+            return;
+          }
 
           wavesurfer.once('ready', () => {
             if (previousRegionOriginal) {
@@ -359,6 +391,8 @@ function renderTranscribePage() {
             updateLoopRangeDisplay();
             updatePlayPauseButton();
           });
+
+          await wavesurfer.loadBlob(blob);
         }
 
         playPauseButton.addEventListener('click', () => {
@@ -386,10 +420,6 @@ function renderTranscribePage() {
         scrubBar.addEventListener('change', () => {
           isScrubbing = false;
           updateTimeDisplay();
-        });
-
-        spectrogramToggle.addEventListener('change', () => {
-          spectrogramContainer.style.display = spectrogramToggle.checked ? '' : 'none';
         });
 
         saveLoopButton.addEventListener('click', async () => {

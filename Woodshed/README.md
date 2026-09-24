@@ -109,15 +109,18 @@ without pitch-shifting.
 
 - Speeds are fixed presets from 100% down to 10% in steps of 10, each
   rendered once via `ffmpeg`'s pitch-preserving `atempo` audio filter and
-  cached, so switching speed is instant after the first render. Switching
-  speed preserves your position in the track and whether it was playing.
+  cached, so switching speed is instant after the first render. Below 50%
+  speed, `atempo` is chained across multiple evenly-split stages (it only
+  accepts a single value down to 0.5) to keep distortion as low as
+  practical. Switching speed preserves your position in the track and
+  whether it was playing, and is pre-fetched in the background so the swap
+  itself has no network delay.
 - A scrub bar under the waveform seeks playback directly (dragging inside
   the waveform itself is reserved for marking loop regions).
-- A spectrogram ("pitch view") below the waveform makes note onsets/changes
-  and phrase boundaries easier to spot than the amplitude waveform alone;
-  it can be toggled off.
 - Audio is downloaded once per video with `yt-dlp` and cached on disk under
-  `.cache/transcribe/` (gitignored).
+  `.cache/transcribe/` (gitignored) for the length of a working session — it's
+  wiped automatically the next time the API starts up, so it never
+  accumulates across runs.
 - Named loop regions persist the same way user saves do: Postgres when
   `DATABASE_URL` is set, in-memory otherwise.
 

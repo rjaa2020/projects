@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -7,9 +9,23 @@ from pydantic import BaseModel, Field
 from .ireal import get_jazz1460_catalog, get_or_fetch_jazz1460_chart, transpose_quiz_chords_for_instrument
 from .quiz import QuizSession, QuizSettings, update_combo_attempt_times, update_combo_scores
 from .theory import DEFAULT_CHORD_TYPES, PRACTICE_ROOTS, ChordPrompt, split_chord_symbol
-from .transcribe import SPEED_PRESETS, TranscribeError, fetch_audio, get_speed_audio_path
+from .transcribe import SPEED_PRESETS, TranscribeError, clear_cache, fetch_audio, get_speed_audio_path
 
-app = FastAPI(title="Woodshed API", version="3.3.0")
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Transcribe's cached audio (source + rendered speeds) only earns its
+    # keep for a single working session — it exists purely to make
+    # switching speeds instant while you're actively using the app.
+    # Clearing it here, on startup rather than on shutdown, means it's
+    # cleaned up no matter how the previous run ended (the "Quit" button,
+    # closing the terminal, Ctrl+C, a crash) instead of only on a clean
+    # exit, and never risks delaying shutdown.
+    clear_cache()
+    yield
+
+
+app = FastAPI(title="Woodshed API", version="3.3.0", lifespan=_lifespan)
 
 
 class PromptRequest(BaseModel):

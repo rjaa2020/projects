@@ -575,13 +575,6 @@ button,
   background: #fafafa;
 }
 
-.control-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 6px;
-}
-
 .control-label {
   margin: 0;
   font-size: 0.85rem;
@@ -589,27 +582,6 @@ button,
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-}
-
-.spectrogram-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.spectrogram-toggle input {
-  width: auto;
-}
-
-.spectrogram {
-  margin: 6px 0 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #111827;
 }
 
 .transport {

@@ -7,6 +7,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-09-23
+
+### Added
+- Added automatic cleanup of Transcribe's cached audio: on API startup, every previously cached video's audio (the original download plus every rendered speed) is deleted. Previously nothing ever cleaned this up, so `.cache/transcribe/` just grew forever across fetches. Cleanup runs on startup rather than on a clean shutdown so it happens no matter how the previous run ended (the "Quit" button, closing the terminal, Ctrl+C, or a crash), and never risks delaying shutdown.
+
+## [3.6.1] - 2026-09-23
+
+### Removed
+- Removed the "phrase view" added in 3.6.0. User feedback: "there's never any silence" — the gap-detection heuristic looked for quiet spans in the full mixed-track audio, but with a rhythm section playing underneath, the track rarely drops in volume just because the soloist pauses, so it almost never found a gap. Same underlying limitation as the spectrogram it replaced (analyzing the full mix instead of the isolated soloist), which really needs stem separation (the deferred v4 roadmap item) to do well. The waveform + scrub bar (unaffected by this change) remain the way to find your spot for now.
+
+## [3.6.0] - 2026-09-23
+
+### Fixed
+- Fixed audible quality loss when switching to speeds at or below 40% in Transcribe. Below 50% speed, `ffmpeg`'s `atempo` filter has to be chained across multiple stages (a single stage only goes down to 0.5), and the previous chaining strategy always used the most extreme stage value ffmpeg allows (0.5) for as many stages as possible, which measurably increases distortion — that's why 40% and below sounded like a bigger drop than 50% and above. Stages are now split evenly (each stage is the geometric mean of the target tempo), which keeps every stage closer to 1.0 and, in spectral testing against a sustained test tone, cut stray/distortion energy at 40% by roughly an order of magnitude versus the old approach, with no change to how far down speeds can go.
+
+### Changed
+- Switching speed presets in Transcribe now swaps in already-downloaded audio instead of fetching it fresh over the network, removing most of the "jump" (pause/reset) that switching speeds used to have. All non-current speeds are pre-fetched in the background as soon as a loop section is opened, so by the time you click a different speed preset it's usually already in memory.
+- Replaced the spectrogram ("pitch view") below the waveform with a "phrase view": a simpler display that shades quiet gaps (likely phrase boundaries) and marks note onsets, computed once from the audio's volume envelope. Unlike the spectrogram, it isolates timing information from the full mixed-band frequency content, which testing showed was cluttered by drums/bass/piano rather than helpful for finding the soloist's phrasing. It also now tracks the current playback position live, which the spectrogram never did. It's off by default and can be toggled on with the "Show" checkbox.
+
 ## [3.5.0] - 2026-09-23
 
 ### Changed

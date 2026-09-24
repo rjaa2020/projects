@@ -120,6 +120,78 @@ def test_render_speed_scales_correctly_and_distinctly_across_all_presets(tmp_pat
     )
 
 
+def test_atempo_filter_chain_single_stage_for_tempo_at_or_above_half():
+    assert transcribe._atempo_filter_chain(1.0) == "atempo=1.0"
+    assert transcribe._atempo_filter_chain(0.5) == "atempo=0.5"
+
+
+def test_atempo_filter_chain_splits_evenly_below_half():
+    # Below 0.5, every stage should be the SAME value (the geometric mean),
+    # not one stage pinned at the extreme 0.5 floor plus a leftover stage.
+    # Pinning a stage at the most aggressive value atempo allows compounds
+    # distortion more than splitting the change evenly across stages.
+    chain = transcribe._atempo_filter_chain(0.4)
+    stages = [float(part.split("=")[1]) for part in chain.split(",")]
+    assert len(stages) == 2
+    assert stages[0] == pytest.approx(stages[1])
+    assert math.prod(stages) == pytest.approx(0.4)
+    assert all(stage >= 0.5 for stage in stages)
+
+
+def test_atempo_filter_chain_stage_count_grows_for_very_low_tempo():
+    chain = transcribe._atempo_filter_chain(0.1)
+    stages = [float(part.split("=")[1]) for part in chain.split(",")]
+    assert len(stages) == 4
+    assert all(stage == pytest.approx(stages[0]) for stage in stages)
+    assert math.prod(stages) == pytest.approx(0.1)
+    assert all(stage >= 0.5 for stage in stages)
+
+
+def test_clear_cache_on_empty_cache_removes_nothing(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "CACHE_ROOT", tmp_path / "does-not-exist-yet")
+    result = transcribe.clear_cache()
+    assert result.videos_removed == 0
+    assert result.bytes_freed == 0
+
+
+def test_clear_cache_removes_every_video_and_reports_bytes_freed(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "CACHE_ROOT", tmp_path)
+    video_a = "aaaaaaaaaaa"
+    video_b = "bbbbbbbbbbb"
+    _write_tone_wav(transcribe._source_audio_path(video_a), seconds=1.0)
+    _write_tone_wav(transcribe._speed_audio_path(video_a, 50), seconds=2.0)
+    _write_tone_wav(transcribe._source_audio_path(video_b), seconds=1.0)
+
+    expected_bytes = sum(
+        f.stat().st_size for f in tmp_path.rglob("*") if f.is_file()
+    )
+    assert expected_bytes > 0
+
+    result = transcribe.clear_cache()
+
+    assert result.videos_removed == 2
+    assert result.bytes_freed == expected_bytes
+    # Check existence directly rather than via _video_cache_dir(), which
+    # would recreate the directory (mkdir(exist_ok=True)) as a side effect.
+    assert not (tmp_path / video_a).exists()
+    assert not (tmp_path / video_b).exists()
+    # The cache root itself is left in place (individual video directories
+    # are what get removed), ready for the next fetch to recreate a subdir.
+    assert tmp_path.exists()
+
+
+def test_clear_cache_is_safe_to_call_again_with_nothing_left(tmp_path, monkeypatch):
+    monkeypatch.setattr(transcribe, "CACHE_ROOT", tmp_path)
+    _write_tone_wav(transcribe._source_audio_path("ccccccccccc"), seconds=1.0)
+
+    first = transcribe.clear_cache()
+    second = transcribe.clear_cache()
+
+    assert first.videos_removed == 1
+    assert second.videos_removed == 0
+    assert second.bytes_freed == 0
+
+
 def _write_tone_wav(path, seconds, frame_rate=22050, frequency=220.0):
     """Write a synthetic sine-tone WAV (not silence) at the given path.
 
