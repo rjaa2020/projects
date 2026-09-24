@@ -453,6 +453,19 @@ button,
   font-size: 0.92rem;
 }
 
+.cookie-instructions {
+  padding-left: 20px;
+}
+
+.cookie-instructions li {
+  margin-bottom: 8px;
+}
+
+.cookie-instructions .link-btn {
+  padding: 4px 10px;
+  font-size: 0.9rem;
+}
+
 .table-wrap {
   overflow-x: auto;
   margin-top: 16px;

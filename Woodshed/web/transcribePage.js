@@ -40,11 +40,34 @@ function renderTranscribePage() {
         <div id="cookiesUploadSection" hidden>
           <p class="footer-note">
             If that failed because YouTube is blocking this server ("Sign in to
-            confirm you're not a bot"), upload a YouTube cookies.txt to authenticate
-            as your account. Export only your <strong>youtube.com</strong> cookies
-            (a browser extension like "Get cookies.txt LOCALLY" can filter to just
-            that site) — nothing else is needed. This isn't stored anywhere
-            persistent, so it'll need re-uploading if this app restarts.
+            confirm you're not a bot"), fix it by uploading your YouTube cookies:
+          </p>
+          <ol class="footer-note cookie-instructions">
+            <li>
+              Install a cookie-export extension —
+              <a
+                class="link-btn"
+                href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Get "Get cookies.txt LOCALLY"</a
+              >
+              (opens the Chrome Web Store in a new tab).
+            </li>
+            <li>
+              Open
+              <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">youtube.com</a>
+              in a new tab and make sure you're logged in.
+            </li>
+            <li>
+              Click the extension's icon, export only the <strong>youtube.com</strong>
+              cookies (not "export all"), and save the resulting file.
+            </li>
+            <li>Upload that file below.</li>
+          </ol>
+          <p class="footer-note">
+            Only youtube.com cookies are needed — nothing else. This isn't stored
+            anywhere persistent, so it'll need re-uploading if this app restarts.
           </p>
           <div class="actions">
             <input type="file" id="cookiesFileInput" accept=".txt" />

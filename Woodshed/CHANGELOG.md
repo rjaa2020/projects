@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [3.9.1] - 2026-09-24
+
+### Changed
+- Added step-by-step instructions (with a direct link to install the "Get cookies.txt LOCALLY" Chrome extension) next to Transcribe's cookie-upload box, added in 3.9.0. Browsers don't let one site's JavaScript read another site's cookies — and YouTube's session cookies are `HttpOnly`, so not even YouTube's own page scripts can read them — so there's no way to build a button that fetches YouTube cookies automatically; a cookie-export browser extension (with its own opt-in, domain-scoped permission) is the only way to get them out. This just makes that manual step easier to follow instead of only naming the extension in passing.
+
 ## [3.9.0] - 2026-09-24
 
 ### Added
